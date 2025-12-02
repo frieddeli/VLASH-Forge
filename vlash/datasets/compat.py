@@ -39,6 +39,55 @@ def patched_check_version(repo_id, version_to_check, current_version, enforce_br
         logging.warning(f"Dataset {repo_id} is v{v_check}, loading with v2.1 compatibility.")
 
 
+def patched_get_safe_version(repo_id: str, revision: str | None) -> str:
+    """Get dataset version, allowing v2.x datasets without error.
+    
+    The original function raises BackwardCompatibilityError for v2.x datasets.
+    This patch returns the actual version instead, enabling loading.
+    """
+    from huggingface_hub import HfApi
+    from lerobot.datasets.lerobot_dataset import CODEBASE_VERSION
+    
+    api = HfApi()
+    dataset_info = api.list_repo_refs(repo_id, repo_type="dataset")
+    
+    # Get all version tags
+    versions = [tag.name for tag in dataset_info.tags if tag.name.startswith("v")]
+    
+    if not versions:
+        # No version tags, use main/revision
+        return revision or "main"
+    
+    # Parse and sort versions
+    parsed_versions = []
+    for v in versions:
+        try:
+            parsed_versions.append((packaging.version.parse(v), v))
+        except Exception:
+            continue
+    
+    if not parsed_versions:
+        return revision or "main"
+    
+    parsed_versions.sort(key=lambda x: x[0], reverse=True)
+    
+    # If revision specified, try to use it
+    if revision:
+        for pv, v in parsed_versions:
+            if v == revision:
+                logging.warning(f"Dataset {repo_id} is {v}, loading with v2.1 compatibility.")
+                return v
+    
+    # Use latest version (even if it's v2.x)
+    latest_parsed, latest_tag = parsed_versions[0]
+    codebase_parsed = packaging.version.parse(CODEBASE_VERSION)
+    
+    if latest_parsed.major < codebase_parsed.major:
+        logging.warning(f"Dataset {repo_id} is {latest_tag}, loading with v2.1 compatibility.")
+    
+    return latest_tag
+
+
 def patched_load_episodes(local_dir: Path):
     """Load episodes from jsonl (v2.1) or parquet (v3.0).
     
@@ -226,6 +275,7 @@ def apply_patches():
     """Apply all compatibility patches to lerobot.
     
     Patches:
+    - get_safe_version: Allow v2.x without BackwardCompatibilityError
     - check_version_compatibility: Allow v2.x with warning
     - load_episodes: Support jsonl format
     - load_tasks: Support jsonl format
@@ -235,6 +285,11 @@ def apply_patches():
     """
     import lerobot.datasets.utils as utils_module
     import lerobot.datasets.lerobot_dataset as dataset_module
+    
+    # Patch get_safe_version in BOTH modules (lerobot_dataset imports it from utils)
+    utils_module.get_safe_version = patched_get_safe_version
+    dataset_module.get_safe_version = patched_get_safe_version
+    
     
     # Patch loading functions in both modules
     for module in [utils_module, dataset_module]:
@@ -247,6 +302,8 @@ def apply_patches():
     meta_cls = dataset_module.LeRobotDatasetMetadata
     meta_cls.get_data_file_path = make_patched_path_method(meta_cls.get_data_file_path, for_video=False)
     meta_cls.get_video_file_path = make_patched_path_method(meta_cls.get_video_file_path, for_video=True)
+    
+    logging.info("VLASH: Applied v2.1 compatibility patches to lerobot")
 
 
 # Apply patches on import
