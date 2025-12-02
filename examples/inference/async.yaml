@@ -32,8 +32,8 @@ fps: 30  # Control loop frequency (Hz)
 control_time_s: 600  # Total runtime (seconds)
 
 # Visualization
-display_data: false  # Camera feeds via rerun
-play_sounds: false  # Audio feedback
+display_data: true  # Camera feeds via rerun
+play_sounds: true  # Audio feedback
 
 # Action quantization factor
 action_quant_ratio: 1
