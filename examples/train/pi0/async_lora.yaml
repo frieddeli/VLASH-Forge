@@ -11,7 +11,7 @@ policy:
 
 # Dataset configuration
 dataset:
-  repo_id: 
+  repo_id: <your dataset repository id>
   video_backend: torchcodec
 
 # Training parameters
