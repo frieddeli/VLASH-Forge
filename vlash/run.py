@@ -364,12 +364,11 @@ def run_loop(
         step_count += 1
 
 
-def load_and_compile_policy(cfg: RunConfig, robot: Robot) -> PreTrainedPolicy:
+def load_and_compile_policy(cfg: RunConfig) -> PreTrainedPolicy:
     """Load pretrained policy from checkpoint.
     
     Args:
         cfg: Run configuration with policy path and settings.
-        robot: Robot instance (used for warmup if compiling).
         
     Returns:
         Loaded policy ready for inference.
@@ -380,16 +379,14 @@ def load_and_compile_policy(cfg: RunConfig, robot: Robot) -> PreTrainedPolicy:
         config=cfg.policy,
     )
 
-    # TODO: Enable torch.compile warmup when bugs are fixed
-    # if cfg.policy.compile_model:
-    #     warmup_compiled_policy(policy, robot, cfg.single_task)
+    if cfg.policy.compile_model:
+        warmup_compiled_policy(policy, cfg.single_task)
 
     return policy
 
 
 def warmup_compiled_policy(
     policy: PreTrainedPolicy,
-    robot: Robot,
     single_task: str | None,
     warmup_steps: int = 3,
 ):
@@ -399,47 +396,48 @@ def warmup_compiled_policy(
     torch.compile has finished optimizing the model, avoiding latency
     spikes during real operation.
     
-    Note: Currently disabled due to bugs in the warmup logic.
-    
     Args:
         policy: Compiled policy to warm up.
-        robot: Robot instance for determining observation shapes.
+        robot: Robot instance (unused, kept for API compatibility).
         single_task: Optional task string.
         warmup_steps: Number of warmup iterations.
     """
-    # TODO: Fix bugs in warmup implementation
     logging.info("Warming up compiled policy...")
     
     device = get_safe_torch_device(policy.config.device)
     
     # Create dummy observation matching policy's expected input shape
+    # Format: [B, C, H, W] for images, [B, state_dim] for state
     dummy_obs = {}
     
-    # Add dummy image observations with correct shape
-    for img_key in policy.config.image_features.keys():
-        channels, height, width = policy.config.image_features[img_key].shape
+    # Add dummy image observations with correct shape [B, C, H, W]
+    for img_key, img_feature in policy.config.image_features.items():
+        channels, height, width = img_feature.shape
         dummy_obs[img_key] = torch.zeros(
-            (1, policy.config.n_obs_steps, channels, height, width),
+            (1, channels, height, width),
             dtype=torch.float32,
             device=device,
         )
     
-    # Add dummy state observation
-    state_dim = len(robot.observation_features) - len(robot.cameras)
-    if state_dim > 0:
+    # Add dummy state observation with correct shape [B, state_dim]
+    # Get state dimension from policy config's input_features
+    if "observation.state" in policy.config.input_features:
+        state_dim = policy.config.input_features["observation.state"].shape[0]
         dummy_obs["observation.state"] = torch.zeros(
-            (1, policy.config.n_obs_steps, state_dim),
+            (1, state_dim),
             dtype=torch.float32,
             device=device,
         )
+    
+    # Add task string
+    dummy_obs["task"] = single_task if single_task is not None else ""
     
     # Run warmup iterations to complete compilation
+    # Use predict_action_chunk which includes all necessary preprocessing
     warmup_start = time.perf_counter()
     for i in range(warmup_steps):
         with torch.inference_mode():
-            if single_task is not None:
-                dummy_obs["task"] = single_task
-            _ = policy.model.sample_actions(dummy_obs)
+            _ = policy.predict_action_chunk(dummy_obs)
     
     warmup_time = time.perf_counter() - warmup_start
     logging.info(f"Warmup complete ({warmup_steps} steps in {warmup_time:.2f}s)")
@@ -485,7 +483,7 @@ def run(cfg: RunConfig):
     validate_robot_cameras(robot, original_policy_config)
 
     # Load policy and prepare feature definitions
-    policy = load_and_compile_policy(cfg, robot)
+    policy = load_and_compile_policy(cfg)
     dataset_features = build_dataset_features(robot)
 
     # Connect to robot and setup keyboard listener for manual control
