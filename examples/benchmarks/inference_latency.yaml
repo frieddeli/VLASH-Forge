@@ -1,0 +1,42 @@
+# VLASH Inference Latency Benchmark Configuration for PI05
+# Measures single inference latency using real dataset samples
+
+# Benchmark type
+type: inference_latency
+
+# Policy configuration
+policy:
+  type: pi05
+  device: cuda
+  dtype: bfloat16
+  
+  # Enable torch.compile for optimized inference
+  compile_model: true
+  
+  # Enable attention/MLP fusion for faster inference
+  fuse_qkv: true
+  fuse_gate_up: true
+
+# Dataset configuration
+dataset:
+  repo_id: lerobot/pusht # Change to your dataset
+  streaming: false
+
+
+# Number of samples to measure 
+num_samples: 16
+
+# Warmup iterations 
+warmup_steps: 10
+
+# Batch size (typically 1 for real-time inference benchmarking)
+batch_size: 1
+
+num_workers: 0
+
+# Random seed for reproducibility
+seed: 42
+
+# Required by TrainPipelineConfig but not used for benchmarking
+output_dir: outputs/benchmarks/inference_latency/pi05
+

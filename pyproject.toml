@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vlash"
+version = "0.1.0"
+description = "Real-Time VLAs via Future-state-aware Asynchronous Inference."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    {name = "Jiaming Tang", email = "jmtang@mit.edu"}
+]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    "lerobot[feetech,smolvla]==0.4.1",
+    "transformers @ git+https://github.com/huggingface/transformers.git@fix/lerobot_openpi",
+    "peft==0.18.0", 
+    "bitsandbytes==0.48.2", 
+    "flask>=3.1.2", 
+    "reachy2_sdk",
+]
+
+[project.urls]
+Homepage = "https://github.com/mit-han-lab/vlash"
+Repository = "https://github.com/mit-han-lab/vlash"
+
+[project.scripts]
+vlash = "vlash.cli:main"
+
+[tool.setuptools]
+packages = ["vlash", "vlash.configs", "vlash.datasets", "benchmarks"]
