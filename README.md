@@ -15,9 +15,9 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
 
 VLASH is an efficient and easy-to-use framework for VLAs fine-tuning and inference.
 
-VLASH is efficient with:
+VLASH is efficient through:
 
-- Asynchronous inference for **fast reaction and smooth motion** in real-time
+- Asynchronous inference for **fast reaction and smooth motion** in real-time (**>30Hz** inference frequency for $\pi_{0.5}$ on RTX 5090)
 - Future-state-awareness to enable **stable asynchronous VLA inference without overhead**
 - Action quantization for **faster robot execution speed**
 - LoRA/QLoRA with shared observation encoding for **efficient fine-tuning on consumer GPUs**
@@ -60,8 +60,6 @@ vlash run examples/inference/async.yaml
 ```bash
 vlash run examples/inference/sync.yaml --action_quant_ratio=2
 ```
-
-Documentation: coming soon.
 
 ## TODO
 - [x] LoRA fine-tuning for $\pi_{0.5}$, $\pi_0$ under 12G GPU memory
