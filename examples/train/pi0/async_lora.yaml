@@ -60,7 +60,7 @@ max_delay_steps: 8
 lora:
   enable: true
   backend: peft
-  extra_trainable_modules:  
+  extra_trainable_modules:
     - action_in_proj
     - action_out_proj
     - time_mlp_in
@@ -69,6 +69,8 @@ lora:
     - state_mlp_in
     - state_mlp_out
     - embeddings
+    - input_layernorm
+    - post_attention_layernorm
 
     
   r: 16
@@ -85,8 +87,3 @@ lora:
     - out_proj
     - fc1
     - fc2
-    - dense
-    - embed_tokens
-    - lm_head
-
-
