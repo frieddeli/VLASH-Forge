@@ -30,7 +30,8 @@ VLASH is easy to use with:
 - Easy deployment on real robot hardware
 
 ## Demo
-[https://github.com/user-attachments/assets/854ffb8a-ec61-4c26-b689-cffa092f4c25](https://github.com/user-attachments/assets/854ffb8a-ec61-4c26-b689-cffa092f4c25)
+
+[https://github.com/user-attachments/assets/e1668053-974b-4831-9778-b30169470663](https://github.com/user-attachments/assets/e1668053-974b-4831-9778-b30169470663)
 
 ## Getting Started
 
