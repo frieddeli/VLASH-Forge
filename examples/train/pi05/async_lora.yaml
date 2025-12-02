@@ -19,7 +19,7 @@ dataset:
 output_dir: outputs/train/pi05_async_lora
 job_name: pi05_async_lora
 batch_size: 1
-grad_accum_steps: 8  # Effective batch size per optimizer step: 2 x 1 x 4 = 8
+grad_accum_steps: 8  # Effective batch size per optimizer step: 1 x 8 = 8
 steps: 50000
 num_workers: 4
 seed: 1000

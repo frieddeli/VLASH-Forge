@@ -1,10 +1,10 @@
-# VLASH Training Configuration for PI05
+# VLASH Training Configuration for PI0
 # Standard training without future-state-awareness
 
 # Policy configuration
 policy:
-  type: pi05
-  pretrained_path: lerobot/pi05_base
+  type: pi0
+  pretrained_path: lerobot/pi0_base
   push_to_hub: false
   dtype: bfloat16
   device: cuda
@@ -15,8 +15,8 @@ dataset:
   video_backend: torchcodec
 
 # Training parameters
-output_dir: outputs/train/pi05
-job_name: pi05
+output_dir: outputs/train/pi0
+job_name: pi0
 batch_size: 8
 steps: 50000
 num_workers: 4
