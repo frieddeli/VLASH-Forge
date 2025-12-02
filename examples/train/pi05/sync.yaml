@@ -41,7 +41,6 @@ scheduler:
 # Checkpointing
 save_checkpoint: true
 save_freq: 10000
-eval_freq: 10000
 
 # Logging
 log_freq: 200
