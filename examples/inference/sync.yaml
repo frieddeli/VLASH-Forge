@@ -34,7 +34,7 @@ control_time_s: 600  # Total runtime (seconds)
 display_data: true  # Camera feeds via rerun
 play_sounds: true  # Audio feedback
 
-# No action quantization (execute every action)
+# Action quantization factor
 action_quant_ratio: 1
 
 # Synchronous mode: no overlap between chunks

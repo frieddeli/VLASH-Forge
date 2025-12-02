@@ -53,7 +53,8 @@ wandb:
   entity: null
   disable_artifact: true
 
-# VLASH-specific: Maximum temporal delay steps (set to 0 for standard training)
+# Maximum temporal delay steps
+# Set to N to enable random delays from [0, N]
 max_delay_steps: 8
 
 # LoRA configuration

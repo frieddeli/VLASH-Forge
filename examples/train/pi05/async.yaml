@@ -51,5 +51,5 @@ wandb:
   entity: null
 
 # Maximum temporal delay steps
-# Each sample will randomly delay by [0, 8] frames (inclusive)
+# Set to N to enable random delays from [0, N]
 max_delay_steps: 8

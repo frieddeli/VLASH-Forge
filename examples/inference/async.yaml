@@ -35,14 +35,12 @@ control_time_s: 600  # Total runtime (seconds)
 display_data: false  # Camera feeds via rerun
 play_sounds: false  # Audio feedback
 
-# Action quantization: execute action every N control steps
-# action_quant_ratio=2 means policy infers every step but robot moves every 2nd
-action_quant_ratio: 2
+# Action quantization factor
+action_quant_ratio: 1
 
 # Async inference: start next chunk N steps before current chunk ends
 # With n_action_steps=32 and inference_overlap_steps=4:
 #   - Current chunk: actions [0..31]
 #   - At action 28, start inference for next chunk
-#   - Next chunk ready by action 32
 # Higher overlap = more GPU time, but uses slightly older observations
 inference_overlap_steps: 4
