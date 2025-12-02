@@ -9,6 +9,10 @@
 Easy-to-use VLA deployment, fast to react, smooth in motion.
 </h3>
 
+<p align="center">
+    <a href="https://arxiv.org/abs/2512.01031"><b>Paper</b></a>
+</p>
+
 ---
 
 ## About
