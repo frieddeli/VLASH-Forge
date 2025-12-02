@@ -316,11 +316,14 @@ def run_loop(
         policy.reset()
 
     # Initialize async manager for VLASH inference
+    # Scale overlap_steps by action_quant_ratio to match effective step count
+    effective_overlap_steps = inference_overlap_steps * action_quant_ratio
+    logging.info(f"Effective overlap_steps: {effective_overlap_steps} (inference_overlap_steps={inference_overlap_steps} * action_quant_ratio={action_quant_ratio})")
     async_manager = VLASHAsyncManager(
         policy=policy,
         robot=robot,
         single_task=single_task,
-        overlap_steps=inference_overlap_steps,
+        overlap_steps=effective_overlap_steps,
     )
 
     step_count = 0
