@@ -268,6 +268,11 @@ def auto_resume(cfg: VLASHTrainConfig) -> None:
                 sys.argv = new_argv
 
                 print(f"Auto-resume enabled. Using config_path={train_config_json} and resume=True.")
+        else:
+            # Checkpoints directory exists but no valid 'last' checkpoint - clean up for fresh start
+            shutil.rmtree(output_dir_path, ignore_errors=True)
+            print(f"Existing output directory {output_dir_path} had checkpoints dir but no valid 'last' checkpoint; "
+                  "it has been removed to start a fresh run.")
                 
     elif output_dir_path.is_dir():
         # Output directory exists but no checkpoints - clean up for fresh start
