@@ -17,7 +17,7 @@ dataset:
 # Training parameters
 output_dir: outputs/train/pi0
 job_name: pi0
-batch_size: 8
+batch_size: 16
 steps: 50000
 num_workers: 4
 seed: 1000
@@ -48,6 +48,7 @@ wandb:
   enable: true
   project: vlash
   entity: null
+  disable_artifact: true
 
 # Maximum temporal delay steps
 # Set to N to enable random delays from [0, N]
