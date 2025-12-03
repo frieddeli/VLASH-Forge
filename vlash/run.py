@@ -473,6 +473,14 @@ def run(cfg: RunConfig):
     init_logging()
     logging.info(pformat(asdict(cfg)))
 
+    # Validate task description is provided (not placeholder)
+    if cfg.single_task is None or cfg.single_task == "<task description>":
+        raise ValueError(
+            "Please provide a language prompt (task description) in the config file.\n"
+            "The 'single_task' field cannot be empty or use the placeholder '<task description>'.\n"
+            "Example: single_task: 'pick up the cube and place it in the box'"
+        )
+
     # Initialize Rerun visualization if requested
     if cfg.display_data:
         init_rerun(session_name="vlash_run")
