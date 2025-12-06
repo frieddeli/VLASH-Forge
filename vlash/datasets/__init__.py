@@ -24,6 +24,10 @@ The compat module is imported first to patch lerobot before other imports.
 # Apply compatibility patches for lerobot v2.1/v3.0 before importing anything else
 import vlash.datasets.compat  # noqa: F401
 
-from vlash.datasets.vlash_dataset import VLASHDataset
+from vlash.datasets.vlash_dataset import (
+    VLASHDataset,
+    SharedObservationVLASHDataset,
+    shared_observation_collate_fn,
+)
 
-__all__ = ["VLASHDataset"]
+__all__ = ["VLASHDataset", "SharedObservationVLASHDataset", "shared_observation_collate_fn"]

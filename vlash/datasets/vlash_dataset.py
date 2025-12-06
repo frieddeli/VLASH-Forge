@@ -30,6 +30,10 @@ State handling with offset:
 - offset > 0: Use previous action (a_{offset-1}) as state
 
 This matches the semantics used in nano-lerobot's apply_async_offset.
+
+SharedObservationVLASHDataset: An optimized variant that returns all offsets
+for a single observation, enabling shared observation training where
+observation embeddings are computed only once.
 """
 
 from pathlib import Path
@@ -37,6 +41,7 @@ from typing import Callable
 import random
 
 import torch
+from torch.utils.data._utils.collate import default_collate
 
 from lerobot.datasets.lerobot_dataset import LeRobotDataset
 
@@ -200,3 +205,235 @@ class VLASHDataset(LeRobotDataset):
         item["observation.state"] = new_state
 
         return item
+
+
+class SharedObservationVLASHDataset(VLASHDataset):
+    """Dataset that returns all offsets for shared observation training.
+    
+    Instead of randomly sampling one offset per sample, this dataset returns
+    all valid offsets [0, max_offset] for each observation. This enables
+    efficient training where:
+    - Observation (images + language) is shared across all offsets
+    - Each offset has its own state and action targets
+    - Custom attention masks prevent cross-offset attention
+    
+    This provides ~(max_delay_steps+1)x speedup since observation embeddings
+    are computed only once per batch instead of once per offset.
+    """
+    
+    def __init__(
+        self,
+        repo_id: str,
+        root: str | Path | None = None,
+        episodes: list[int] | None = None,
+        image_transforms: Callable | None = None,
+        delta_timestamps: dict[str, list[float]] | None = None,
+        tolerance_s: float = 1e-4,
+        revision: str | None = None,
+        force_cache_sync: bool = False,
+        download_videos: bool = True,
+        video_backend: str | None = None,
+        batch_encoding_size: int = 1,
+        max_delay_steps: int = 0,
+    ):
+        """Initialize SharedObservationVLASHDataset.
+        
+        Args: Same as VLASHDataset.
+        """
+        super().__init__(
+            repo_id=repo_id,
+            root=root,
+            episodes=episodes,
+            image_transforms=image_transforms,
+            delta_timestamps=delta_timestamps,
+            tolerance_s=tolerance_s,
+            revision=revision,
+            force_cache_sync=force_cache_sync,
+            download_videos=download_videos,
+            video_backend=video_backend,
+            batch_encoding_size=batch_encoding_size,
+            max_delay_steps=max_delay_steps,
+        )
+
+    def _get_query_indices_for_offset(
+        self, idx: int, ep_idx: int, offset: int
+    ) -> tuple[dict[str, list[int]], dict[str, torch.BoolTensor]]:
+        """Get query indices for a specific offset.
+        
+        Args:
+            idx: Sample index in dataset.
+            ep_idx: Episode index.
+            offset: Temporal offset to apply.
+            
+        Returns:
+            Tuple of (query_indices, padding_masks).
+        """
+        ep = self.meta.episodes[ep_idx]
+        ep_start = ep["dataset_from_index"]
+        ep_end = ep["dataset_to_index"]
+
+        query_indices: dict[str, list[int]] = {}
+        padding: dict[str, torch.BoolTensor] = {}
+
+        for key, delta_idx in self.delta_indices.items():
+            query_indices[key] = [
+                max(ep_start, min(ep_end - 1, idx + delta + offset)) for delta in delta_idx
+            ]
+            padding[f"{key}_is_pad"] = torch.BoolTensor(
+                [(idx + delta + offset < ep_start) | (idx + delta + offset >= ep_end) for delta in delta_idx]
+            )
+
+        return query_indices, padding
+
+    def __getitem__(self, idx) -> dict:
+        """Get sample with all valid offsets.
+        
+        Returns a single observation with states and actions for all valid
+        offsets [0, max_offset].
+        
+        Args:
+            idx: Sample index.
+            
+        Returns:
+            Dictionary containing:
+            - observation.images.*: Shared images [C, H, W]
+            - task: Task string (shared)
+            - observation.state: States for all offsets [num_offsets, state_dim]
+            - action: Actions for all offsets [num_offsets, chunk_size, action_dim]
+            - action_is_pad: Padding masks [num_offsets, chunk_size]
+            - num_offsets: Number of valid offsets
+        """
+        # Get episode info
+        ep_idx = self.hf_dataset[idx]["episode_index"].item()
+        ep = self.meta.episodes[ep_idx]
+        ep_start = ep["dataset_from_index"]
+        ep_end = ep["dataset_to_index"]
+        
+        # Compute maximum valid offset for this sample
+        max_delta = self.delta_indices["action"][-1]
+        max_offset = min(self.max_delay_steps, max(0, ep_end - 1 - (idx + max_delta)))
+        num_offsets = max_offset + 1
+        
+        # Get base item with offset=0 (for shared observation)
+        self._last_offset = 0
+        base_item = super(VLASHDataset, self).__getitem__(idx)
+        
+        # Prepare output with shared observation
+        result = {}
+        
+        # Copy shared observation (images, task, etc.)
+        for key in base_item:
+            if key.startswith("observation.images.") or key == "task" or key == "episode_index":
+                result[key] = base_item[key]
+        
+        # Collect states and actions for all offsets
+        states = []
+        actions = []
+        action_is_pads = []
+        
+        for offset in range(num_offsets):
+            # Get state for this offset
+            if offset == 0:
+                state = base_item["observation.state"]
+            else:
+                # State is previous action (action at t + offset - 1)
+                prev_idx = max(ep_start, min(ep_end - 1, idx + offset - 1))
+                prev_action = self.hf_dataset[prev_idx]["action"]
+                
+                obs_state = base_item["observation.state"]
+                if obs_state.dim() != 1 or prev_action.dim() != 1:
+                    raise ValueError("For now only support 1D state/action.")
+                
+                state_dim = obs_state.shape[0]
+                action_dim = prev_action.shape[0]
+                
+                if state_dim == action_dim:
+                    state = prev_action
+                else:
+                    raise ValueError(
+                        f"Unsupported state_dim != action_dim combination "
+                        "in SharedObservationVLASHDataset when applying async offset."
+                    )
+            states.append(state)
+            
+            # Get actions for this offset
+            query_indices, padding = self._get_query_indices_for_offset(idx, ep_idx, offset)
+            
+            # Fetch actions using query indices
+            action_indices = query_indices["action"]
+            action_list = [self.hf_dataset[ai]["action"] for ai in action_indices]
+            action_tensor = torch.stack(action_list, dim=0)  # [chunk_size, action_dim]
+            actions.append(action_tensor)
+            action_is_pads.append(padding["action_is_pad"])
+        
+        # Stack all offsets
+        result["observation.state"] = torch.stack(states, dim=0)  # [num_offsets, state_dim]
+        result["action"] = torch.stack(actions, dim=0)  # [num_offsets, chunk_size, action_dim]
+        result["action_is_pad"] = torch.stack(action_is_pads, dim=0)  # [num_offsets, chunk_size]
+        result["num_offsets"] = num_offsets
+        
+        return result
+
+
+def shared_observation_collate_fn(batch: list[dict]) -> dict:
+    """Custom collate function for SharedObservationVLASHDataset.
+    
+    Handles variable number of offsets per sample by padding to max_offsets
+    in the batch and creating an offset mask.
+    
+    Args:
+        batch: List of samples from SharedObservationVLASHDataset.
+        
+    Returns:
+        Collated batch with:
+        - Shared observations batched normally
+        - States/actions padded to [B, max_offsets, ...]
+        - offset_mask: [B, max_offsets] indicating valid offsets
+    """
+    # Find max number of offsets in batch
+    max_offsets = max(item["num_offsets"] for item in batch)
+    
+    # Separate shared vs per-offset keys
+    shared_keys = []
+    per_offset_keys = ["observation.state", "action", "action_is_pad"]
+    
+    for key in batch[0]:
+        if key not in per_offset_keys and key != "num_offsets":
+            shared_keys.append(key)
+    
+    result = {}
+    
+    # Collate shared keys normally
+    shared_batch = [{k: item[k] for k in shared_keys} for item in batch]
+    shared_result = default_collate(shared_batch)
+    result.update(shared_result)
+    
+    # Pad per-offset keys to max_offsets
+    batch_size = len(batch)
+    device = batch[0]["observation.state"].device
+    
+    # Get shapes from first sample
+    state_shape = batch[0]["observation.state"].shape[1:]  # [state_dim]
+    action_shape = batch[0]["action"].shape[1:]  # [chunk_size, action_dim]
+    
+    # Initialize padded tensors
+    padded_states = torch.zeros(batch_size, max_offsets, *state_shape, device=device)
+    padded_actions = torch.zeros(batch_size, max_offsets, *action_shape, device=device)
+    padded_action_is_pad = torch.ones(batch_size, max_offsets, action_shape[0], dtype=torch.bool, device=device)
+    offset_mask = torch.zeros(batch_size, max_offsets, dtype=torch.bool, device=device)
+    
+    # Fill in actual values
+    for i, item in enumerate(batch):
+        n = item["num_offsets"]
+        padded_states[i, :n] = item["observation.state"]
+        padded_actions[i, :n] = item["action"]
+        padded_action_is_pad[i, :n] = item["action_is_pad"]
+        offset_mask[i, :n] = True
+    
+    result["observation.state"] = padded_states  # [B, max_offsets, state_dim]
+    result["action"] = padded_actions  # [B, max_offsets, chunk_size, action_dim]
+    result["action_is_pad"] = padded_action_is_pad  # [B, max_offsets, chunk_size]
+    result["offset_mask"] = offset_mask  # [B, max_offsets]
+    result["max_offsets"] = max_offsets
+    
+    return result

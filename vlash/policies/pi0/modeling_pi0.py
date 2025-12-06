@@ -48,7 +48,13 @@ from lerobot.utils.constants import ACTION, OBS_STATE
 
 from vlash.policies.normalize import Normalize, Unnormalize
 from vlash.policies.pi0.configuration_pi0 import PI0Config
-from vlash.policies.pi0.utils import create_sinusoidal_pos_embedding, pad_vector, build_attention_mask_and_position_ids, resize_with_pad
+from vlash.policies.pi0.utils import (
+    create_sinusoidal_pos_embedding,
+    pad_vector,
+    build_attention_mask_and_position_ids,
+    build_shared_obs_attention_mask_and_position_ids,
+    resize_with_pad,
+)
 from vlash.layers.attention import Attention
 from vlash.layers.linear import QKVLinear, MergedColumnLinear
 from vlash.layers.rope import RotaryEmbedding
@@ -596,6 +602,137 @@ class PI0Model(nn.Module):
 
         return F.mse_loss(u_t, v_t, reduction="none")
 
+    def forward_shared_observation(
+        self,
+        images,
+        img_masks,
+        tokens,
+        masks,
+        states,
+        actions,
+        offset_mask,
+        noise=None,
+        time=None,
+    ):
+        """Training forward pass with shared observation across multiple offsets.
+        
+        This method enables efficient training where observation embeddings are
+        computed once and shared across all offset branches. Each offset branch
+        has its own state and action targets, with attention masks preventing
+        cross-offset attention.
+        
+        Args:
+            images: List of image tensors [B, C, H, W].
+            img_masks: List of validity masks [B].
+            tokens: Language token IDs [B, L_text].
+            masks: Language attention masks [B, L_text].
+            states: Robot states for all offsets [B, num_offsets, state_dim].
+            actions: Target actions for all offsets [B, num_offsets, T, action_dim].
+            offset_mask: Boolean mask [B, num_offsets] indicating valid offsets.
+            noise: Optional noise tensor [B, num_offsets, T, action_dim].
+            time: Optional flow matching timestep [B, num_offsets].
+            
+        Returns:
+            Loss tensor [B, num_offsets, T, action_dim].
+        """
+        batch_size = states.shape[0]
+        num_offsets = states.shape[1]
+        device = states.device
+        
+        if noise is None:
+            noise = self.sample_noise(actions.shape, actions.device)
+        
+        if time is None:
+            # Sample time for each offset branch
+            time = self.sample_time(batch_size * num_offsets, actions.device)
+            time = time.view(batch_size, num_offsets)
+        
+        # Interpolate between noise and actions for each offset
+        time_expanded = time[:, :, None, None]  # [B, num_offsets, 1, 1]
+        x_t = time_expanded * noise + (1 - time_expanded) * actions
+        u_t = noise - actions  # True velocity
+        
+        # Embed shared prefix (images + language) - only once!
+        prefix_embs, prefix_pad_masks, prefix_att_masks = self.prefix_embedder(
+            images, img_masks, tokens, masks
+        )
+        prefix_length = prefix_embs.shape[1]
+        
+        # Embed suffix for each offset branch
+        # Flatten batch and offset dimensions for suffix embedding
+        states_flat = states.view(batch_size * num_offsets, -1)  # [B*num_offsets, state_dim]
+        x_t_flat = x_t.view(batch_size * num_offsets, x_t.shape[2], -1)  # [B*num_offsets, T, action_dim]
+        time_flat = time.view(batch_size * num_offsets)  # [B*num_offsets]
+        
+        suffix_embs_flat, suffix_pad_masks_flat, suffix_att_masks_flat, suffix_adarms_cond = self.suffix_embedder(
+            states_flat, x_t_flat, time_flat
+        )
+        suffix_length = suffix_embs_flat.shape[1]
+        
+        # Get pad_masks and att_masks for one suffix (they're the same for all offsets)
+        # Take from first batch element since structure is the same
+        suffix_pad_masks = suffix_pad_masks_flat[:batch_size]  # [B, suffix_length]
+        suffix_att_masks = suffix_att_masks_flat[:batch_size]  # [B, suffix_length]
+        
+        # Reshape suffix back to [B, num_offsets, suffix_length, hidden_dim]
+        suffix_embs = suffix_embs_flat.view(batch_size, num_offsets, suffix_length, -1)
+        
+        # Concatenate all suffix branches: [B, num_offsets * suffix_length, hidden_dim]
+        suffix_embs_concat = suffix_embs.view(batch_size, num_offsets * suffix_length, -1)
+        
+        # Build combined embeddings: prefix + all suffix branches
+        backbone_dtype = self.vlm.model.language_model.layers[0].self_attn.o_proj.weight.dtype
+        prefix_embs = prefix_embs.to(dtype=backbone_dtype)
+        suffix_embs_concat = suffix_embs_concat.to(dtype=backbone_dtype)
+        
+        # Build shared observation attention mask and position IDs
+        attention_mask, position_ids = build_shared_obs_attention_mask_and_position_ids(
+            prefix_pad_masks=prefix_pad_masks,
+            prefix_att_masks=prefix_att_masks,
+            suffix_pad_masks=suffix_pad_masks,
+            suffix_att_masks=suffix_att_masks,
+            num_offsets=num_offsets,
+            offset_mask=offset_mask,
+            dtype=prefix_embs.dtype,
+        )
+        
+        hidden_states = [prefix_embs, suffix_embs_concat]
+        conds = [None, None]  # PI0 doesn't use adaRMS
+        
+        for layer in self.layers:
+            hidden_states = layer(hidden_states, attention_mask, position_ids, conds, use_cache=False)
+        
+        # Final layer norm
+        norms = [self.vlm.language_model.norm, self.action_expert.model.norm]
+        final_hidden_states: list[torch.Tensor | None] = []
+        for i, hs in enumerate(hidden_states):
+            if hs is None:
+                final_hidden_states.append(None)
+                continue
+            hs, _ = norms[i](hs, cond=conds[i])
+            final_hidden_states.append(hs)
+        hidden_states = final_hidden_states
+        
+        # Extract action predictions for each offset
+        # suffix_out: [B, num_offsets * suffix_length, hidden_dim]
+        suffix_out = hidden_states[1]
+        
+        # Reshape to [B, num_offsets, suffix_length, hidden_dim]
+        suffix_out = suffix_out.view(batch_size, num_offsets, suffix_length, -1)
+        
+        # Extract only action tokens (last chunk_size tokens of each suffix)
+        # suffix has: 1 state token + chunk_size action tokens
+        action_out = suffix_out[:, :, -self.config.chunk_size:, :]  # [B, num_offsets, chunk_size, hidden_dim]
+        
+        # Project to action space
+        action_out = action_out.to(dtype=self.action_out_proj.weight.dtype)
+        v_t = self.action_out_proj(action_out)  # [B, num_offsets, chunk_size, action_dim]
+        
+        # Compute MSE loss
+        losses = F.mse_loss(u_t, v_t, reduction="none")
+        
+        return losses
+
     @torch.no_grad()
     def denoise_step(
         self,
@@ -993,3 +1130,103 @@ class PI0Policy(PreTrainedPolicy):
         """Pad action to max_action_dim."""
         actions = pad_vector(batch[ACTION], self.config.max_action_dim)
         return actions
+
+    def forward_shared_observation(
+        self, batch: dict[str, Tensor], noise=None, time=None
+    ) -> tuple[Tensor, dict[str, Tensor]]:
+        """Training forward pass with shared observation.
+        
+        This method handles batches from SharedObservationVLASHDataset where:
+        - Observations (images, language) are shared across offsets
+        - States and actions have shape [B, num_offsets, ...]
+        
+        Args:
+            batch: Dictionary containing:
+                - observation.images.*: [B, C, H, W] (shared)
+                - task: List[str] (shared)
+                - observation.state: [B, num_offsets, state_dim]
+                - action: [B, num_offsets, chunk_size, action_dim]
+                - action_is_pad: [B, num_offsets, chunk_size]
+                - offset_mask: [B, num_offsets]
+            noise: Optional noise tensor [B, num_offsets, chunk_size, action_dim].
+            time: Optional flow matching timestep [B, num_offsets].
+            
+        Returns:
+            Tuple of (loss, loss_dict).
+        """
+        # Extract offset info
+        offset_mask = batch["offset_mask"]  # [B, num_offsets]
+        batch_size, num_offsets = offset_mask.shape
+        
+        # Normalize shared observations (images)
+        # Create a temporary batch with just shared observations for normalization
+        shared_batch = {}
+        for key in batch:
+            if key.startswith("observation.images.") or key == "task":
+                shared_batch[key] = batch[key]
+        
+        # For state, we need to normalize each offset's state
+        # Flatten [B, num_offsets, state_dim] -> [B*num_offsets, state_dim]
+        states = batch[OBS_STATE]  # [B, num_offsets, state_dim]
+        states_flat = states.view(batch_size * num_offsets, -1)
+        
+        # Create temp batch for state normalization
+        state_batch = {OBS_STATE: states_flat}
+        state_batch = self.normalize_inputs(state_batch)
+        states_normalized = state_batch[OBS_STATE].view(batch_size, num_offsets, -1)
+        states_normalized = pad_vector(states_normalized, self.config.max_state_dim)
+        
+        # Normalize actions [B, num_offsets, chunk_size, action_dim]
+        actions = batch[ACTION]
+        original_shape = actions.shape
+        actions_flat = actions.view(batch_size * num_offsets * original_shape[2], -1)
+        action_batch = {ACTION: actions_flat}
+        action_batch = self.normalize_targets(action_batch)
+        actions_normalized = action_batch[ACTION].view(original_shape)
+        actions_normalized = pad_vector(actions_normalized, self.config.max_action_dim)
+        
+        # Prepare images (shared across offsets)
+        images, img_masks = self.prepare_images(batch)
+        
+        # Prepare language (shared across offsets)
+        lang_tokens, lang_masks = self.prepare_language(batch)
+        
+        # Get action padding mask
+        actions_is_pad = batch.get("action_is_pad")  # [B, num_offsets, chunk_size]
+        
+        loss_dict: dict[str, Tensor | float] = {}
+        
+        # Call model's shared observation forward
+        losses = self.model.forward_shared_observation(
+            images, img_masks, lang_tokens, lang_masks,
+            states_normalized, actions_normalized, offset_mask,
+            noise, time
+        )  # [B, num_offsets, chunk_size, action_dim]
+        
+        # Apply action padding mask (same as regular forward)
+        # Padded action positions are zeroed but still count in the denominator,
+        # matching the regular forward behavior where mean() includes padding.
+        if actions_is_pad is not None:
+            in_episode_bound = ~actions_is_pad  # [B, num_offsets, chunk_size]
+            losses = losses * in_episode_bound.unsqueeze(-1)
+        
+        # Apply offset mask to zero out invalid offsets
+        losses = losses * offset_mask[:, :, None, None]
+        
+        # Truncate to actual action dim
+        losses = losses[:, :, :, :self.config.max_action_dim]
+        
+        # Average over valid offsets only
+        # Each offset's mean is: offset_losses.sum() / (chunk_size * action_dim)
+        # We want: sum(offset_i_mean for valid i) / num_valid_offsets
+        # = sum(offset_losses) / (num_valid_offsets * chunk_size * action_dim)
+        # This matches regular forward behavior where each offset is trained separately
+        num_valid_offsets = offset_mask.sum()
+        num_elements_per_offset = losses.shape[2] * losses.shape[3]  # chunk_size * action_dim
+        loss = losses.sum() / (num_valid_offsets * num_elements_per_offset).clamp(min=1)
+        
+        loss_dict["loss"] = loss.item()
+        loss_dict["num_offsets"] = num_offsets
+        loss_dict["avg_valid_offsets"] = offset_mask.float().sum(dim=1).mean().item()
+        
+        return loss, loss_dict
