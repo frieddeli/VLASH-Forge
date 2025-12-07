@@ -221,3 +221,118 @@ def resize_with_pad(
     padded_img = F.pad(resized_img, (pad_width, 0, pad_height, 0), value=pad_value)
     
     return padded_img
+
+
+def build_shared_obs_attention_mask_and_position_ids(
+    prefix_pad_masks: torch.Tensor,
+    prefix_att_masks: torch.Tensor,
+    suffix_pad_masks: torch.Tensor,
+    suffix_att_masks: torch.Tensor,
+    num_offsets: int,
+    offset_mask: torch.Tensor,
+    dtype: torch.dtype,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Build attention mask and position IDs for shared observation training.
+    
+    This function properly handles padding tokens and builds the correct attention
+    pattern by reusing the logic from build_attention_mask_and_position_ids.
+    
+    Args:
+        prefix_pad_masks: Padding mask for prefix [B, prefix_length].
+        prefix_att_masks: Attention structure mask for prefix [B, prefix_length].
+        suffix_pad_masks: Padding mask for one suffix [B, suffix_length].
+        suffix_att_masks: Attention structure mask for one suffix [B, suffix_length].
+        num_offsets: Number of offset branches.
+        offset_mask: Boolean mask [B, num_offsets] indicating valid offsets.
+        dtype: Output dtype for attention mask.
+        
+    Returns:
+        attention_mask: Additive mask [B, 1, total_length, total_length].
+        position_ids: Position indices [B, total_length].
+    """
+    batch_size = prefix_pad_masks.shape[0]
+    prefix_length = prefix_pad_masks.shape[1]
+    suffix_length = suffix_pad_masks.shape[1]
+    total_length = prefix_length + suffix_length * num_offsets
+    device = prefix_pad_masks.device
+    mask_value = torch.finfo(dtype).min
+    
+    # Build combined pad_masks and att_masks for the full sequence (vectorized)
+    # Suffix is repeated for each offset
+    full_pad_masks = torch.zeros(batch_size, total_length, dtype=torch.bool, device=device)
+    full_att_masks = torch.zeros(batch_size, total_length, dtype=prefix_att_masks.dtype, device=device)
+    
+    # Prefix part
+    full_pad_masks[:, :prefix_length] = prefix_pad_masks
+    full_att_masks[:, :prefix_length] = prefix_att_masks
+    
+    # Suffix parts: tile suffix masks for all offsets at once
+    # [B, suffix_length] -> [B, num_offsets * suffix_length]
+    suffix_pad_tiled = suffix_pad_masks.unsqueeze(1).expand(-1, num_offsets, -1).reshape(batch_size, -1)
+    suffix_att_tiled = suffix_att_masks.unsqueeze(1).expand(-1, num_offsets, -1).reshape(batch_size, -1)
+    full_pad_masks[:, prefix_length:] = suffix_pad_tiled
+    full_att_masks[:, prefix_length:] = suffix_att_tiled
+    
+    # Compute cumsum for block-causal structure
+    cumsum = torch.cumsum(full_att_masks, dim=1)
+    
+    # Build the base 2D attention mask using cumsum logic
+    att_2d_masks = cumsum[:, None, :] <= cumsum[:, :, None]
+    
+    # Apply padding mask
+    pad_2d_masks = full_pad_masks[:, None, :] * full_pad_masks[:, :, None]
+    att_2d_masks = att_2d_masks & pad_2d_masks
+    
+    # Block cross-offset attention (vectorized)
+    # Create a mask that blocks attention between different offset branches
+    # For positions in suffix, determine which offset they belong to
+    suffix_positions = torch.arange(num_offsets * suffix_length, device=device)
+    offset_ids = suffix_positions // suffix_length  # [num_offsets * suffix_length]
+    
+    # Create cross-offset blocking mask for suffix-to-suffix attention
+    # query_offset != key_offset should be blocked
+    query_offset_ids = offset_ids.unsqueeze(1)  # [S, 1]
+    key_offset_ids = offset_ids.unsqueeze(0)    # [1, S]
+    cross_offset_mask = (query_offset_ids == key_offset_ids)  # [S, S], True where same offset
+    
+    # Apply to the suffix-suffix part of att_2d_masks
+    suffix_start = prefix_length
+    att_2d_masks[:, suffix_start:, suffix_start:] = att_2d_masks[:, suffix_start:, suffix_start:] & cross_offset_mask
+    
+    # Apply offset_mask (vectorized): invalid offsets should be fully masked
+    # Create per-position validity mask from offset_mask [B, num_offsets] -> [B, num_offsets * suffix_length]
+    offset_validity = offset_mask.unsqueeze(2).expand(-1, -1, suffix_length).reshape(batch_size, -1)  # [B, S]
+    
+    # Mask out invalid offset positions in att_2d_masks
+    # Invalid queries can't attend to anything
+    att_2d_masks[:, suffix_start:, :] = att_2d_masks[:, suffix_start:, :] & offset_validity.unsqueeze(2)
+    # Nothing can attend to invalid keys
+    att_2d_masks[:, :, suffix_start:] = att_2d_masks[:, :, suffix_start:] & offset_validity.unsqueeze(1)
+    
+    # Compute position IDs (vectorized)
+    position_ids = torch.zeros(batch_size, total_length, dtype=torch.long, device=device)
+    
+    # Prefix position IDs
+    prefix_pos = torch.cumsum(prefix_pad_masks.long(), dim=1) - 1
+    position_ids[:, :prefix_length] = prefix_pos
+    
+    # Get the last valid prefix position for each batch
+    last_prefix_pos = prefix_pos[:, -1]  # [B]
+    
+    # Suffix position IDs: each branch continues from last_prefix_pos + 1
+    # Tile suffix positions for all offsets: [B, suffix_length] -> [B, num_offsets * suffix_length]
+    suffix_pos_base = torch.cumsum(suffix_pad_masks.long(), dim=1)  # [B, suffix_length]
+    suffix_pos_tiled = suffix_pos_base.unsqueeze(1).expand(-1, num_offsets, -1).reshape(batch_size, -1)
+    position_ids[:, prefix_length:] = last_prefix_pos[:, None] + suffix_pos_tiled
+    
+    # Convert to additive mask
+    attention_mask = torch.where(
+        att_2d_masks,
+        torch.zeros_like(att_2d_masks, dtype=dtype),
+        torch.full_like(att_2d_masks, mask_value, dtype=dtype),
+    )
+    attention_mask = attention_mask.unsqueeze(1)
+    
+    return attention_mask, position_ids
+
+

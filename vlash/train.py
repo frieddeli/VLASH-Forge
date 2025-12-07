@@ -62,7 +62,7 @@ from lerobot.utils.utils import (
 )
 
 from vlash.configs.train_config import VLASHTrainConfig
-from vlash.datasets import VLASHDataset
+from vlash.datasets import VLASHDataset, SharedObservationVLASHDataset, shared_observation_collate_fn
 from vlash.lora import (
     apply_lora,
     clone_and_merge_lora_policy,
@@ -89,12 +89,16 @@ def make_vlash_dataset(cfg: VLASHTrainConfig):
     max_delay_steps, and it should predict where the robot will be,
     not where it currently is.
     
+    When shared_observation=True, returns a SharedObservationVLASHDataset that
+    provides all offsets for each sample, enabling efficient training with
+    shared observation embeddings.
+    
     Args:
         cfg: Training configuration containing dataset, policy, and 
              max_delay_steps settings.
     
     Returns:
-        VLASHDataset: Dataset instance with temporal delay augmentation.
+        VLASHDataset or SharedObservationVLASHDataset: Dataset instance.
     """
     image_transforms = (
         ImageTransforms(cfg.dataset.image_transforms) if cfg.dataset.image_transforms.enable else None
@@ -107,26 +111,43 @@ def make_vlash_dataset(cfg: VLASHTrainConfig):
     
     delta_timestamps = resolve_delta_timestamps(cfg.policy, ds_meta)
     
-    # Log the temporal delay configuration
-    if cfg.max_delay_steps > 0:
+    # Determine which dataset class to use
+    if cfg.shared_observation and cfg.max_delay_steps > 0:
         logging.info(
-            f"Creating VLASHDataset with max_delay_steps={cfg.max_delay_steps} "
-            f"(random delays from [0, {cfg.max_delay_steps}])"
+            f"Creating SharedObservationVLASHDataset with max_delay_steps={cfg.max_delay_steps} "
+            f"(training all offsets [0, {cfg.max_delay_steps}] with shared observation)"
+        )
+        dataset = SharedObservationVLASHDataset(
+            cfg.dataset.repo_id,
+            root=cfg.dataset.root,
+            episodes=cfg.dataset.episodes,
+            delta_timestamps=delta_timestamps,
+            image_transforms=image_transforms,
+            revision=cfg.dataset.revision,
+            video_backend=cfg.dataset.video_backend,
+            max_delay_steps=cfg.max_delay_steps,
         )
     else:
-        logging.info("Creating VLASHDataset with max_delay_steps=0 (no temporal delay)")
-    
-    # Create dataset with temporal offset augmentation
-    dataset = VLASHDataset(
-        cfg.dataset.repo_id,
-        root=cfg.dataset.root,
-        episodes=cfg.dataset.episodes,
-        delta_timestamps=delta_timestamps,
-        image_transforms=image_transforms,
-        revision=cfg.dataset.revision,
-        video_backend=cfg.dataset.video_backend,
-        max_delay_steps=cfg.max_delay_steps,
-    )
+        # Log the temporal delay configuration
+        if cfg.max_delay_steps > 0:
+            logging.info(
+                f"Creating VLASHDataset with max_delay_steps={cfg.max_delay_steps} "
+                f"(random delays from [0, {cfg.max_delay_steps}])"
+            )
+        else:
+            logging.info("Creating VLASHDataset with max_delay_steps=0 (no temporal delay)")
+        
+        # Create dataset with temporal offset augmentation
+        dataset = VLASHDataset(
+            cfg.dataset.repo_id,
+            root=cfg.dataset.root,
+            episodes=cfg.dataset.episodes,
+            delta_timestamps=delta_timestamps,
+            image_transforms=image_transforms,
+            revision=cfg.dataset.revision,
+            video_backend=cfg.dataset.video_backend,
+            max_delay_steps=cfg.max_delay_steps,
+        )
     
     # Apply ImageNet stats if requested (same as original make_dataset)
     if cfg.dataset.use_imagenet_stats:
@@ -149,6 +170,7 @@ def update_policy(
     *,
     loss_scale: float = 1.0,
     do_step: bool = True,
+    use_shared_observation: bool = False,
 ) -> tuple[MetricsTracker, dict]:
     """
     Performs a single training step to update the policy's weights.
@@ -167,6 +189,7 @@ def update_policy(
         lock: Optional threading lock for thread-safe optimizer updates.
         loss_scale: Scaling factor for loss (1/grad_accum_steps for accumulation).
         do_step: Whether to perform optimizer step (False for accumulation).
+        use_shared_observation: If True, use shared observation forward for efficiency.
     
     Returns:
         Tuple of:
@@ -177,7 +200,15 @@ def update_policy(
 
     # Forward pass with automatic mixed precision (AMP)
     with accelerator.autocast():
-        loss, output_dict = policy.forward(batch)
+        if use_shared_observation:
+            # Use shared observation forward when available
+            unwrapped_policy = accelerator.unwrap_model(policy, keep_fp32_wrapper=True)
+            if hasattr(unwrapped_policy, 'forward_shared_observation'):
+                loss, output_dict = unwrapped_policy.forward_shared_observation(batch)
+            else:
+                raise ValueError("Policy does not have a forward_shared_observation method")
+        else:
+            loss, output_dict = policy.forward(batch)
         # Keep unscaled loss for logging, scale for gradient accumulation
         raw_loss = loss.detach()
         loss = loss * loss_scale
@@ -427,6 +458,10 @@ def train(cfg: VLASHTrainConfig, accelerator: Accelerator | None = None):
         shuffle = True
         sampler = None
 
+    # Use custom collate function for shared observation dataset
+    use_shared_observation = cfg.shared_observation and cfg.max_delay_steps > 0
+    collate_fn = shared_observation_collate_fn if use_shared_observation else None
+
     dataloader = torch.utils.data.DataLoader(
         dataset,
         num_workers=cfg.num_workers,
@@ -436,6 +471,7 @@ def train(cfg: VLASHTrainConfig, accelerator: Accelerator | None = None):
         pin_memory=device.type == "cuda",
         drop_last=False,
         prefetch_factor=2 if cfg.num_workers > 0 else None,
+        collate_fn=collate_fn,
     )
 
     # === Prepare for Distributed Training ===
@@ -496,6 +532,7 @@ def train(cfg: VLASHTrainConfig, accelerator: Accelerator | None = None):
                 lr_scheduler=lr_scheduler if do_step else None,
                 loss_scale=1.0 / cfg.grad_accum_steps,  # Scale loss for accumulation
                 do_step=do_step,
+                use_shared_observation=use_shared_observation,
             )
             step_compute_time += time.perf_counter() - compute_start
 
