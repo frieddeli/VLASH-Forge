@@ -62,7 +62,7 @@ vlash run examples/inference/async.yaml
 
 **Run async inference with 2x speedup:**
 ```bash
-vlash run examples/inference/sync.yaml --action_quant_ratio=2
+vlash run examples/inference/async.yaml --action_quant_ratio=2
 ```
 
 ## TODO
