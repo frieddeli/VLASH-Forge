@@ -8,10 +8,7 @@ version = "0.1.0"
 description = "Real-Time VLAs via Future-state-aware Asynchronous Inference."
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
-authors = [
-    {name = "Jiaming Tang", email = "jmtang@mit.edu"}
-]
+license = "Apache-2.0"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
