@@ -26,4 +26,14 @@ share/python-wheels/
 MANIFEST
 /.deps/
 
-outputs/
+outputs/# pixi environments
+.pixi/*
+
+
+# Ignore episode data and videos
+comp4901/test1/videos/
+comp4901/test1/data/
+comp4901/test1/meta/
+*.mp4
+*.parquet
+

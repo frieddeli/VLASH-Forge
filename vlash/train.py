@@ -52,9 +52,9 @@ from lerobot.optim.factory import make_optimizer_and_scheduler
 from lerobot.policies.pretrained import PreTrainedPolicy
 from lerobot.rl.wandb_utils import WandBLogger
 from lerobot.utils.logging_utils import AverageMeter, MetricsTracker
-from lerobot.utils.random_utils import set_seed
-from lerobot.utils.constants import PRETRAINED_MODEL_DIR
-from lerobot.utils.train_utils import get_step_checkpoint_dir, load_training_state, save_checkpoint, update_last_checkpoint
+from lerobot.utils.random_utils import set_seed, load_rng_state
+from lerobot.utils.constants import PRETRAINED_MODEL_DIR, TRAINING_STATE_DIR
+from lerobot.utils.train_utils import get_step_checkpoint_dir, load_training_state, load_training_step, save_checkpoint, update_last_checkpoint
 from lerobot.utils.utils import (
     format_big_number,
     has_method,
@@ -227,7 +227,7 @@ def update_policy(
             grad_norm = torch.nn.utils.clip_grad_norm_(
                 policy.parameters(), float("inf"), error_if_nonfinite=False
             )
-        grad_norm_value = grad_norm.item()
+        grad_norm_value = grad_norm.item() if hasattr(grad_norm, 'item') else float(grad_norm)
 
         # Optimizer step
         with lock if lock is not None else nullcontext():
@@ -416,10 +416,17 @@ def train(cfg: VLASHTrainConfig, accelerator: Accelerator | None = None):
         if cfg.lora.enable:
             load_lora_adapters(policy, cfg.checkpoint_path)
 
-        # Load optimizer, scheduler, and step from checkpoint
-        step, optimizer, lr_scheduler = load_training_state(
-            cfg.checkpoint_path, optimizer, lr_scheduler
-        )
+        if accelerator.state.deepspeed_plugin is not None:
+            # DeepSpeed: optimizer/scheduler were not saved in standard format.
+            # Only restore the training step and RNG state.
+            training_state_dir = cfg.checkpoint_path / TRAINING_STATE_DIR
+            load_rng_state(training_state_dir)
+            step = load_training_step(training_state_dir)
+        else:
+            # Load optimizer, scheduler, and step from checkpoint
+            step, optimizer, lr_scheduler = load_training_state(
+                cfg.checkpoint_path, optimizer, lr_scheduler
+            )
 
     # === Log Training Configuration ===
     num_learnable_params = count_parameters(policy, only_trainable=True)
@@ -572,6 +579,11 @@ def train(cfg: VLASHTrainConfig, accelerator: Accelerator | None = None):
                 checkpoint_dir = get_step_checkpoint_dir(cfg.output_dir, cfg.steps, step)
                 unwrapped_policy = accelerator.unwrap_model(policy)
 
+                # DeepSpeed ZeRO shards optimizer states across GPUs; its state_dict()
+                # format is incompatible with lerobot's save_optimizer_state utility.
+                # Skip optimizer saving when using DeepSpeed.
+                save_optimizer = None if accelerator.state.deepspeed_plugin is not None else optimizer
+
                 if cfg.lora.enable and is_lora_policy(unwrapped_policy):
                     # LoRA: merge adapters into base model for inference-ready checkpoint
                     pretrained_dir = checkpoint_dir / PRETRAINED_MODEL_DIR
@@ -585,7 +597,7 @@ def train(cfg: VLASHTrainConfig, accelerator: Accelerator | None = None):
                         step=step,
                         cfg=cfg,
                         policy=merged_policy,
-                        optimizer=optimizer,
+                        optimizer=save_optimizer,
                         scheduler=lr_scheduler,
                     )
                 else:
@@ -595,7 +607,7 @@ def train(cfg: VLASHTrainConfig, accelerator: Accelerator | None = None):
                         step=step,
                         cfg=cfg,
                         policy=unwrapped_policy,
-                        optimizer=optimizer,
+                        optimizer=save_optimizer,
                         scheduler=lr_scheduler,
                     )
 

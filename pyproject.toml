@@ -22,7 +22,8 @@ dependencies = [
     "peft==0.18.0", 
     "bitsandbytes==0.48.2", 
     "flask>=3.1.2", 
-    "reachy2_sdk",
+    "reachy2_sdk", "deepspeed>=0.16.0,<0.17",
+    "torchcodec>=0.5,<0.6",
 ]
 
 [project.urls]
@@ -34,3 +35,15 @@ vlash = "vlash.cli:main"
 
 [tool.setuptools]
 packages = ["vlash", "vlash.configs", "vlash.datasets", "benchmarks"]
+[tool.pixi.workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[tool.pixi.dependencies]
+python = "3.12.*"
+cuda-toolkit = "12.6.*"
+
+[tool.pixi.pypi-dependencies]
+vlash = { path = ".", editable = true }
+
+[tool.pixi.tasks]

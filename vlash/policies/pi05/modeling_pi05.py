@@ -179,7 +179,7 @@ class PI05SuffixEmbedder(nn.Module):
             max_period=self.config.max_period,
             device=time.device,
         )
-        time_emb = time_emb.to(dtype=time.dtype)
+        time_emb = time_emb.to(dtype=self.time_mlp_in.weight.dtype)
         
         # Process time through MLP
         time_emb = self.time_mlp_in(time_emb)
@@ -188,13 +188,12 @@ class PI05SuffixEmbedder(nn.Module):
         time_emb = F.silu(time_emb)
 
         # Project noisy actions
-        action_emb = self.action_in_proj(noisy_actions)
+        action_emb = self.action_in_proj(noisy_actions.to(dtype=self.action_in_proj.weight.dtype))
         adarms_cond = time_emb
 
         # Add state conditioning if enabled
         if self.config.state_cond:
-            if self.state_proj.weight.dtype == torch.float32:
-                state = state.to(torch.float32)
+            state = state.to(dtype=self.state_proj.weight.dtype)
 
             state_emb = self.state_proj(state)
             state_emb = self.state_mlp_in(state_emb)
@@ -829,7 +828,7 @@ class PI05Model(nn.Module):
         suffix_out = suffix_out.to(dtype=self.action_out_proj.weight.dtype)
         v_t = self.action_out_proj(suffix_out)
 
-        return F.mse_loss(u_t, v_t, reduction="none")
+        return F.mse_loss(u_t.to(dtype=v_t.dtype), v_t, reduction="none")
 
     def forward_shared_observation(
         self,
@@ -959,7 +958,7 @@ class PI05Model(nn.Module):
         v_t = self.action_out_proj(action_out)  # [B, num_offsets, chunk_size, action_dim]
         
         # Compute MSE loss
-        losses = F.mse_loss(u_t, v_t, reduction="none")
+        losses = F.mse_loss(u_t.to(dtype=v_t.dtype), v_t, reduction="none")
         
         return losses
 
@@ -1157,6 +1156,33 @@ class PI05Policy(PreTrainedPolicy):
         self.model = PI05Model(config)
 
         self.reset()
+
+    def save_pretrained(self, save_directory, **kwargs):
+        """Save policy, cloning shared/view tensors to avoid safetensors errors."""
+        # PaliGemma ties patch_embedding.weight to the LLM embedding table.
+        # Safetensors refuses to save tensors that (a) share storage with another
+        # tensor OR (b) are views that don't cover the entire underlying storage
+        # (e.g. patch_embedding.weight is a reshaped slice of embed_tokens.weight).
+        # We temporarily clone all such tensors, save, then restore.
+        cloned = {}
+        storage_to_name: dict[int, str] = {}
+        params = list(self.named_parameters())
+        for name, param in params:
+            storage_ptr = param.data.untyped_storage().data_ptr()
+            storage_size = param.data.untyped_storage().nbytes()
+            tensor_size = param.data.nbytes
+            if storage_ptr in storage_to_name or tensor_size < storage_size:
+                # Shared tensor OR view that doesn't cover the full storage
+                cloned[name] = param.data
+                param.data = param.data.clone()
+            else:
+                storage_to_name[storage_ptr] = name
+        try:
+            super().save_pretrained(save_directory, **kwargs)
+        finally:
+            param_dict = dict(self.named_parameters())
+            for name, original_data in cloned.items():
+                param_dict[name].data = original_data
 
     @classmethod
     def from_pretrained(
