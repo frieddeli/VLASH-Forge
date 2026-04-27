@@ -12,6 +12,14 @@ VLASH team used DPP distributed training on 4xH100 but their repo did not includ
 
  we attempt to implement distributed training using deepspeed
 
+## Supported Models
+
+VLASH currently supports **pi0** and **pi05** only — hardcoded in `vlash/policies/factory.py`. Both are PaliGemma-backbone transformer VLAs.
+
+**SmolVLA** (HuggingFace's lightweight VLA, same transformer family) is a strong candidate for future extension — it shares the same attention/MLP structure so LoRA target modules and the training pipeline would carry over with a new `vlash/policies/smolvla/` directory and a factory entry. Do not attempt to add SmolVLA support without first verifying its action-chunking output format matches pi0/pi05's interface (the async inference overlap and `forward_shared_observation` depend on this).
+
+ACT, Diffusion Policy, and TDMPC are **not** compatible with VLASH's async inference or shared observation optimisations and would require major rework.
+
 ## Guiding Implementation Document
 
 **`IMPLEMENTATION_PLAN.md` at the repo root is the authoritative guide for this project.** Read it before starting any implementation work. It covers:
