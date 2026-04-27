@@ -12,6 +12,14 @@ VLASH team used DPP distributed training on 4xH100 but their repo did not includ
 
  we attempt to implement distributed training using deepspeed
 
+## Guiding Implementation Document
+
+**`IMPLEMENTATION_PLAN.md` at the repo root is the authoritative guide for this project.** Read it before starting any implementation work. It covers:
+- All confirmed design decisions (base image, pixi strategy, HF model download approach, GPU targets)
+- Portability audit findings and fixes
+- Full file-by-file implementation plan across 5 phases
+- Verification steps
+
 ## Assignment Grounding
 
 Refer to the assignment.txt for info on what are the deliverables for this project - see submission requirements
