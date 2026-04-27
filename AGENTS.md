@@ -1,24 +1,34 @@
-# Agent Guidelines — vlash (Comp-4901D)
+# Agent Guidelines — vlash (Comp-4651)
 
 ## Repository identity
-- **Local path**: `/home/users/ntu/m230060/vlash`
-- **Remote**: `https://github.com/frieddeli/Comp-4901D` (branch: `main`)
-- This is the **primary / upstream-fork** repo. Do NOT confuse it with `vlash_lora`.
 
-## Working directory
-Always confirm you are inside `/home/users/ntu/m230060/vlash` before running any
-command or editing any file. If in doubt:
+**We are adapting a fine tuning pipeline (VLASH) originally built for HPC clusters and attempting to dockerise and simplfy the setup so that it can be deployed on commercial cloud instances - we have validated the code works on the Singapore NCSS ASPIRE 2A cluter with PBS.**
 
-```bash
-cd /home/users/ntu/m230060/vlash
-```
+## The Problem
+
+VLASH team used DPP distributed training on 4xH100 but their repo did not included the DPP code, Distributed training is hard , fine tuning VLAs is hard
+
+## Solution
+
+ we attempt to implement distributed training using deepspeed
+
+## Assignment Grounding
+
+Refer to the assignment.txt for info on what are the deliverables for this project - see submission requirements
+
+## Report format
+
+The project report should be written in QMD(quarto) as per the guidelines laid out by assignment.txt in assigment grounding rules
+
+## Deliverables
+
+1. Docker Images that can be deployed on commerical cloud providers or HPC enviroments through singularity containers https://docs.sylabs.io/guides/3.5/user-guide/introduction.html, https://docs.sylabs.io/guides/3.5/user-guide/oci_runtime.html
+2. Report in QMD
+3. Easy configuartion / setup to allow non technical user to avoid having to debug distrbuted training
 
 ## Pixi environment
-All Python commands must be run through the **pixi** managed environment located at:
 
-```
-/home/users/ntu/m230060/vlash/.pixi/envs/default/
-```
+All Python commands must be run through the **pixi** managed environment
 
 Activate or prefix commands correctly:
 
@@ -26,8 +36,6 @@ Activate or prefix commands correctly:
 # Preferred — run a one-off command inside the env
 pixi run <command>
 
-# Or invoke the interpreter directly
-/home/users/ntu/m230060/vlash/.pixi/envs/default/bin/python <script>
 ```
 
 - Python version: **3.12**
@@ -36,7 +44,14 @@ pixi run <command>
 - The package is installed in editable mode (`pip install -e .`), so source edits take effect immediately without reinstalling.
 - Do **not** use `conda`, `venv`, or system Python for this repo.
 
+## General rules
+
+1. Never install packages globally; only modify `pyproject.toml` to add dependencies so pixi can manage them.
+2. Do not commit generated files (`.pixi/`, `__pycache__/`, `*.egg-info/`, `outputs/`).
+3. Run tests with `pixi run python -m pytest` from the repo root before marking a task done.
+
 ## Change log
+
 Every agent session that modifies files in this repo must append an entry to
 `CHANGELOG.md` (create it at the repo root if it does not exist yet) using the
 format below. Add the entry **before committing** any changes.
@@ -53,7 +68,10 @@ format below. Add the entry **before committing** any changes.
 
 Keep entries concise — one bullet per file changed is sufficient.
 
+## Below are NSCC specific, use only as reference
+
 ## Scratch storage
+
 Large outputs (checkpoints, datasets, logs) live on the scratch filesystem, **not** in the repo directory:
 
 ```
@@ -63,9 +81,3 @@ Large outputs (checkpoints, datasets, logs) live on the scratch filesystem, **no
 ```
 
 Always write checkpoints and heavy artifacts to `/scratch/users/ntu/m230060/` — the home directory (`/home/users/ntu/m230060/`) has limited quota and should only contain source code.
-
-## General rules
-1. Never install packages globally; only modify `pyproject.toml` to add dependencies so pixi can manage them.
-2. Do not commit generated files (`.pixi/`, `__pycache__/`, `*.egg-info/`, `outputs/`).
-3. Run tests with `pixi run python -m pytest` from the repo root before marking a task done.
-4. If you are unsure whether a change belongs in `vlash` or `vlash_lora`, check the remote URL — this repo points to **frieddeli/Comp-4901D**.
