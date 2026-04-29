@@ -4,6 +4,8 @@
 
 **We are adapting a fine tuning pipeline (VLASH) originally built for HPC clusters and attempting to dockerise and simplfy the setup so that it can be deployed on commercial cloud instances - we have validated the code works on the Singapore NCSS ASPIRE 2A cluter with PBS.**
 
+VLASH paper can be found @ https://arxiv.org/html/2512.01031v1
+
 ## The Problem
 
 VLASH team used DPP distributed training on 4xH100 but their repo did not included the DPP code, Distributed training is hard , fine tuning VLAs is hard
@@ -23,6 +25,7 @@ ACT, Diffusion Policy, and TDMPC are **not** compatible with VLASH's async infer
 ## Guiding Implementation Document
 
 **`IMPLEMENTATION_PLAN.md` at the repo root is the authoritative guide for this project.** Read it before starting any implementation work. It covers:
+
 - All confirmed design decisions (base image, pixi strategy, HF model download approach, GPU targets)
 - Portability audit findings and fixes
 - Full file-by-file implementation plan across 5 phases

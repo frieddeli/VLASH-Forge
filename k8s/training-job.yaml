@@ -1,0 +1,85 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vlash-train
+  labels:
+    app: vlash
+spec:
+  # Retry on node failure but not on training errors (OOM, bad config, etc.)
+  backoffLimit: 2
+  template:
+    spec:
+      restartPolicy: OnFailure
+      # Required for NCCL shared memory buffers across processes
+      hostIPC: true
+      containers:
+        - name: train
+          image: vlash:latest
+          imagePullPolicy: IfNotPresent
+          args: ["examples/train/pi05/cloud.yaml"]
+          env:
+            - name: HF_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: hf-secret
+                  key: token
+            - name: HF_HOME
+              value: /hf_cache
+            - name: NUM_GPUS
+              value: "4"
+            # Optional: uncomment to enable W&B experiment tracking
+            # - name: WANDB_API_KEY
+            #   valueFrom:
+            #     secretKeyRef:
+            #       name: wandb-secret
+            #       key: api-key
+          resources:
+            limits:
+              nvidia.com/gpu: 4
+            requests:
+              nvidia.com/gpu: 4
+              memory: "64Gi"
+              cpu: "8"
+          volumeMounts:
+            - name: hf-cache
+              mountPath: /hf_cache
+            - name: outputs
+              mountPath: /workspace/outputs
+      volumes:
+        - name: hf-cache
+          persistentVolumeClaim:
+            claimName: hf-cache-pvc
+        - name: outputs
+          persistentVolumeClaim:
+            claimName: outputs-pvc
+
+# ── Prerequisites ─────────────────────────────────────────────────────────────
+# 1. Create HuggingFace token secret:
+#    kubectl create secret generic hf-secret --from-literal=token=<YOUR_HF_TOKEN>
+#
+# 2. Create PersistentVolumeClaims:
+#    kubectl apply -f - <<'EOF'
+#    apiVersion: v1
+#    kind: PersistentVolumeClaim
+#    metadata:
+#      name: hf-cache-pvc
+#    spec:
+#      accessModes: [ReadWriteOnce]
+#      resources:
+#        requests:
+#          storage: 50Gi
+#    ---
+#    apiVersion: v1
+#    kind: PersistentVolumeClaim
+#    metadata:
+#      name: outputs-pvc
+#    spec:
+#      accessModes: [ReadWriteOnce]
+#      resources:
+#        requests:
+#          storage: 100Gi
+#    EOF
+#
+# 3. Submit the job:
+#    kubectl apply -f k8s/training-job.yaml
+#    kubectl logs -f job/vlash-train

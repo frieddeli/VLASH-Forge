@@ -1,0 +1,23 @@
+Bootstrap: docker
+From: vlash:latest
+
+# Bootstrap from the Docker image — single source of truth, no duplicated build logic.
+# Build: singularity build vlash.sif singularity.def
+# Run:   singularity run --nv -B /scratch/users/ntu/m230060:/scratch vlash.sif examples/train/pi05/cloud.yaml
+
+%post
+    # Create mount points for NSCC scratch storage and dataset directories
+    mkdir -p /scratch /data
+
+%environment
+    # Default HF cache to scratch so large model weights don't fill home quota.
+    # Override by passing -B /your/hf_cache:/hf_cache and setting HF_HOME=/hf_cache.
+    export HF_HOME=${HF_HOME:-/scratch/.cache/huggingface}
+
+%runscript
+    exec /workspace/docker-entrypoint.sh "$@"
+
+%labels
+    Author COMP4651 Project Team
+    Version 1.0
+    Description VLASH VLA fine-tuning with DeepSpeed ZeRO-2 — HPC/cloud portable

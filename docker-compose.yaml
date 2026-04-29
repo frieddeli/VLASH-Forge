@@ -1,0 +1,28 @@
+services:
+  train:
+    build: .
+    image: vlash:latest
+    runtime: nvidia
+    environment:
+      - HF_TOKEN=${HF_TOKEN}
+      - HF_HOME=/hf_cache
+      - NUM_GPUS=${NUM_GPUS:-4}
+      - WANDB_API_KEY=${WANDB_API_KEY:-}
+    volumes:
+      # Persistent model cache — avoids re-downloading 10GB+ weights on restart
+      - ${HF_CACHE_PATH:-./hf_cache}:/hf_cache
+      # Dataset directory (LeRobot format)
+      - ${DATASET_PATH:-./data}:/data
+      # Training outputs: checkpoints and logs
+      - ${OUTPUT_PATH:-./outputs}:/workspace/outputs
+    command: examples/train/pi05/cloud.yaml
+    # NCCL requires shared memory and host networking for multi-GPU communication
+    ipc: host
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

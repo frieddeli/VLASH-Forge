@@ -12,7 +12,7 @@ No Docker files exist yet. The training pipeline, DeepSpeed config, LoRA support
 
 - **GPU targets:** Generic multi-GPU (CUDA arches 7.0+8.0+8.6+8.9+9.0 — covers V100, A100, A10, 4090, H100)
 - **Container targets:** Docker (docker-compose) + Singularity + Kubernetes Job manifest
-- **Base image:** `ubuntu:22.04` — pixi owns Python 3.12 + CUDA 12.6 toolkit from conda-forge. NVIDIA Container Runtime injects GPU drivers at container startup. No conflicting CUDA installations.
+- **Base image:** `nvcr.io/nvidia/cuda:12.6.3-devel-ubuntu24.04` — NVIDIA's CUDA 12.6 devel image on Ubuntu 24.04. CUDA toolkit provided by the base image; **not** installed via pixi/conda-forge. This avoids pixi pulling in the conda cross-compiler (`x86_64-conda-linux-gnu-cc`) whose bundled sysroot has old kernel headers that break source builds of `evdev` (transitive dep: LeRobot → pynput → evdev). Without the conda cross-compiler, pip uses system gcc with Ubuntu 24.04 kernel headers (linux-libc-dev 6.8) which define all required input codes.
 - **pixi at build time:** `pixi install` runs during `docker build`, baking the full pixi.lock-pinned environment into the image. Fast cold starts, no internet needed at runtime.
 - **Model downloads:** `HF_TOKEN` env var → entrypoint logs in → HuggingFace downloads on first run and caches in `HF_HOME`. `HF_HOME` is a persistent volume mount so 10GB+ models are not re-downloaded on every container restart. Works on cloud (internet available) and NSCC compute nodes (internet confirmed available).
 - **Report data:** Existing training runs available; will run inference benchmarks inside container for real latency/FPS numbers.
@@ -64,23 +64,24 @@ The NSCC-specific `mytrain_piper_test3.yaml` and `mytrain.yaml` remain untouched
 ### 1.1 `Dockerfile`
 **Path:** `/home/ray/Dev/COMP4651-Project/Dockerfile`
 
-Single-stage build — `ubuntu:22.04` base, pixi owns everything at build time:
+Single-stage build — `nvcr.io/nvidia/cuda:12.6.3-devel-ubuntu24.04` base, pixi owns Python/ML deps (CUDA provided by base image):
 
 ```
-Base: ubuntu:22.04
+Base: nvcr.io/nvidia/cuda:12.6.3-devel-ubuntu24.04
   → Install system deps: curl, git, ffmpeg, build-essential, libgl1
   → Install pixi binary (curl from install.pixi.sh)
-  → COPY pyproject.toml pixi.lock ./
+  → COPY pyproject.toml ./  (no pixi.lock — regenerated fresh during build)
   → COPY vlash/ benchmarks/ examples/ deepspeed_config.yaml ./
-  → pixi install --frozen  (resolves pixi.lock exactly: Python 3.12, CUDA 12.6, all ML deps)
-  → DeepSpeed installs (CUDA ops compiled lazily at first training run, not here)
+  → pixi install  (resolves Python 3.12 + all ML deps; cuda-toolkit NOT in pixi deps)
+  → DeepSpeed/bitsandbytes CUDA ops compiled lazily at first training run
   → COPY docker-entrypoint.sh + chmod +x
   → ENTRYPOINT ["./docker-entrypoint.sh"]
 ```
 
 **Key env vars set in Dockerfile:**
 - `PATH=/root/.pixi/envs/default/bin:$PATH`
-- `LD_LIBRARY_PATH=/root/.pixi/envs/default/lib:$LD_LIBRARY_PATH`
+- `LD_LIBRARY_PATH=/root/.pixi/envs/default/lib:/usr/local/cuda/lib64`
+- `CUDA_HOME=/usr/local/cuda`
 - `TORCH_CUDA_ARCH_LIST="7.0;8.0;8.6;8.9;9.0"`
 - `PIXI_FROZEN=1` — prevents pixi from attempting lockfile updates at runtime
 
@@ -310,6 +311,91 @@ format:
 
 ---
 
-## Remaining Open Item
+## Phase 6 — Docker Build & Testing Verification
+
+Before submitting, build and verify the Docker image works end-to-end.
+
+### Docker Build & Testing Checklist
+
+#### Phase 1: Build the Image
+```bash
+docker build -t vlash:latest .
+```
+- [ ] Build completes without errors
+- [ ] Expected time: 10–30 min (network-dependent)
+- [ ] Check: network connectivity, >50GB disk space, pixi.lock validity
+
+#### Phase 2: Test Python Imports (No GPU Needed)
+```bash
+# Test VLASH import
+docker run --rm vlash:latest pixi run python -c "import vlash; print('VLASH OK')"
+
+# Test PyTorch
+docker run --rm vlash:latest pixi run python -c "import torch; print(f'PyTorch {torch.__version__}')"
+
+# Test DeepSpeed
+docker run --rm vlash:latest pixi run python -c "import deepspeed; print('DeepSpeed OK')"
+```
+- [ ] All three commands succeed
+- [ ] Troubleshoot: ImportError → `pixi update` locally and rebuild
+
+#### Phase 3: Interactive Debugging Shell
+```bash
+docker run --rm -it --entrypoint bash vlash:latest
+# Inside container:
+which python
+pixi info
+python -c "import torch; print(torch.__version__)"
+exit
+```
+- [ ] Bash shell opens successfully
+- [ ] pixi environment is activated
+- [ ] PyTorch version displays correctly
+
+#### Phase 4: GPU Access Test (Requires GPU Hardware)
+```bash
+docker run --rm --gpus all vlash:latest \
+  pixi run python -c "import torch; print(f'CUDA: {torch.cuda.is_available()}, Devices: {torch.cuda.device_count()}')"
+```
+- [ ] Output shows `CUDA: True`
+- [ ] Device count > 0
+- [ ] Troubleshoot: CUDA unavailable → install [NVIDIA Container Runtime](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+
+#### Phase 5: Smoke Test Training (Requires GPU + HF Token + Dataset)
+```bash
+export HF_TOKEN=<your_hf_token>
+export DATASET_REPO_ID=lerobot/pusht_sim  # or your test dataset
+
+docker run --rm --gpus all \
+  -e HF_TOKEN=$HF_TOKEN \
+  -e DATASET_REPO_ID=$DATASET_REPO_ID \
+  -e NUM_GPUS=1 \
+  -v $(pwd)/outputs:/workspace/outputs \
+  -v $(pwd)/hf_cache:/hf_cache \
+  -e HF_HOME=/hf_cache \
+  vlash:latest examples/train/pi05/cloud.yaml --steps=10
+```
+- [ ] Training starts without errors
+- [ ] HuggingFace model downloads successfully (may take 2–5 min)
+- [ ] Training runs for 10 steps
+- [ ] Checkpoint saved to `./outputs/pi05_cloud/checkpoints/`
+- [ ] CUDA compilation warning (first run only): expected, takes 1–3 min
+
+### Troubleshooting Reference
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| `docker build` fails | Network/disk space | Check internet, ensure >50GB free, retry |
+| `ImportError: No module` | pixi.lock incomplete | Run `pixi update` locally, rebuild |
+| `CUDA not available` | NVIDIA Container Runtime missing | Install nvidia-container-toolkit |
+| `HF auth error` | Invalid/missing token | Verify HF_TOKEN is valid and HF credentials are current |
+| `Dataset not found` | Invalid dataset ID | Verify DATASET_REPO_ID is public or you have access |
+| `OOM error` | GPU memory too small | Reduce batch size or use fewer GPUs |
+| NCCL/DeepSpeed error | Config or driver mismatch | Check deepspeed_config.yaml, verify GPU driver version |
+
+---
+
+## Remaining Open Items
 
 - **Group member info** — names, student IDs, and emails needed for README. Provide when ready.
+- **Evaluation metrics** — run inference/training benchmarks and fill in report.qmd evaluation tables (Phase 5 test provides timing data)

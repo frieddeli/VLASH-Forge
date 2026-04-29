@@ -1,0 +1,23 @@
+# pixi-managed env — rebuilt during docker build via pixi install --frozen
+.pixi/
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Training outputs (large, mounted as volumes at runtime)
+outputs/
+
+# Git history not needed inside image
+.git/
+.gitattributes
+.gitignore
+
+# Report and docs
+report/
+*.md
+*.txt
+*.pdf
+
+# pixi.lock must NOT be excluded — it pins the exact environment baked into the image

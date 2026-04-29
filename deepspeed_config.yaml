@@ -1,19 +1,42 @@
+# Accelerate + DeepSpeed ZeRO-2 configuration for VLASH distributed training.
+#
+# Usage: accelerate launch --config_file deepspeed_config.yaml --num_processes <N> -m vlash.train <config.yaml>
+# The --num_processes flag passed at runtime overrides num_processes below.
+
 compute_environment: LOCAL_MACHINE
 debug: false
 distributed_type: DEEPSPEED
-downcast_bf16: 'no'
-machine_rank: 0
-main_training_function: main
+
+# Mixed precision: bf16 is numerically stable and natively supported on A100/H100.
+# Use fp16 only if your GPU does not support bf16 (e.g., older V100).
 mixed_precision: bf16
+downcast_bf16: 'no'
+
+# Single-node multi-GPU. For multi-node, change num_machines and set main_process_ip.
 num_machines: 1
-num_processes: 4
+num_processes: 4   # overridden at runtime by --num_processes; serves as documentation default
+machine_rank: 0
+
+# NCCL rendezvous — static is correct for single-node; use c10d for multi-node.
 rdzv_backend: static
 same_network: true
 use_cpu: false
+
 deepspeed_config:
+  # ZeRO stage 2: shards optimizer states and gradients across GPUs.
+  # This halves per-GPU memory vs DDP while keeping parameter access local
+  # (unlike ZeRO-3 which also shards parameters, adding more communication overhead).
+  zero_stage: 2
+  zero3_init_flag: false
+
+  # Gradient accumulation: effective batch = batch_size x grad_accum_steps x num_gpus.
+  # Set to 1 here; controlled per-run by the training config YAML.
   gradient_accumulation_steps: 1
+
+  # Clip gradient norm to prevent training instability with large VLA models.
   gradient_clipping: 1.0
+
+  # Optimizer and parameter offload to CPU RAM — disabled.
+  # Enabling offload_optimizer reduces GPU memory at the cost of 2–4× slower training.
   offload_optimizer_device: none
   offload_param_device: none
-  zero3_init_flag: false
-  zero_stage: 2
