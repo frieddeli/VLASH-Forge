@@ -90,17 +90,39 @@ docker-compose up
 
 ### Option C — Singularity / HPC (NSCC ASPIRE or any SLURM cluster)
 
-```bash
-# Build the Singularity image from the Docker image
-singularity build vlash.sif singularity.def
+**Step 1 — Pull the image from Docker Hub (on your local machine or HPC login node)**
 
-# Run on NSCC ASPIRE (PBS scheduler)
+```bash
+# Pull and convert the Docker image to Singularity format
+singularity pull vlash.sif docker://frieddeli/vlash:latest
+
+# This creates vlash.sif (~10–15 GB, takes ~5–10 minutes)
+# For faster transfer to HPC, you can build locally and scp it:
+# scp vlash.sif user@nscc-server:/scratch/users/ntu/<your-id>/vlash.sif
+```
+
+**Step 2 — Run training on HPC**
+
+```bash
+# On NSCC ASPIRE (PBS scheduler)
+singularity run --nv \
+  -B /scratch/users/ntu/m230060:/scratch \
+  vlash.sif examples/train/pi05/cloud.yaml
+
+# For multi-GPU with 4 GPUs:
+export NUM_GPUS=4
 singularity run --nv \
   -B /scratch/users/ntu/m230060:/scratch \
   vlash.sif examples/train/pi05/cloud.yaml
 ```
 
 The entrypoint automatically normalises `CUDA_VISIBLE_DEVICES` from PBSpro UUID format to integer indices — no manual export needed in your PBS job script.
+
+**Alternatively**, build the Singularity image locally from the recipe:
+
+```bash
+singularity build vlash.sif singularity.def
+```
 
 ### Option D — Kubernetes
 
