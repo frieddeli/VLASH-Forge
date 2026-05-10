@@ -11,15 +11,13 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
 
 <p align="center">
     <a href="https://arxiv.org/abs/2512.01031"><b>Paper</b></a>
-    &nbsp;|&nbsp;
-    <b>Demo Video (coming soon)</b>
 </p>
 
 <p align="center">
   <a href="https://arxiv.org/abs/2512.01031">
     <img src="https://img.shields.io/badge/Based%20on-arXiv%3A2512.01031-b31b1b.svg" alt="Based on arXiv:2512.01031">
   </a>
-  <a href="https://hub.docker.com/r/frieddeli/vlash">
+  <a href="https://hub.docker.com/r/frieddeli/vlash-forge">
     <img src="https://img.shields.io/badge/Docker-frieddeli%2Fvlash-2496ED?logo=docker&logoColor=white" alt="Docker Hub">
   </a>
   <a href="https://huggingface.co/lerobot/pi05_base">
@@ -45,21 +43,42 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
 
 ## About
 
-VLASH is a fine-tuning and deployment framework for Vision-Language-Action models, built on top of [LeRobot](https://github.com/huggingface/lerobot). This repo packages it into a **portable, one-command training pipeline** so anyone can fine-tune π₀/π₀.₅ on their own robot task — whether on a cloud VM, an HPC cluster, or a local workstation — without needing to manage distributed training infrastructure from scratch.
+Fine-tuning a state-of-the-art robot policy like π₀.₅ on your own task requires
+multi-GPU distributed training, a carefully managed Python environment, and
+infrastructure that has never been publicly released for the VLASH framework.
+**This repo removes those barriers.**
 
-The framework is validated end-to-end on a **ball pick-and-place task** using a Piper arm with inference on a Jetson AGX Orin: task demonstrations are collected on the robot, fine-tuning runs on cloud/HPC, and the resulting checkpoint deploys back to the Jetson for real-time 30 Hz control.
+It packages [VLASH](https://arxiv.org/abs/2512.01031) — a VLA fine-tuning and
+deployment framework built on [LeRobot](https://github.com/huggingface/lerobot)
+— into a single container image that runs on a cloud VM, an HPC cluster, or a
+local workstation with one command. You bring your robot demonstrations; the
+pipeline handles the rest.
 
-**What VLASH adds over standard LeRobot training:**
+**The intended workflow:**
 
-- **Asynchronous inference** via Temporal Delay Augmentation — overlaps model inference with robot execution for **29.5× lower latency** on embedded hardware
-- **LoRA + shared observation encoding** — fine-tune π₀.₅ on as little as **12 GB VRAM**
-- **DeepSpeed ZeRO-2** (LoRA) and **FSDP** (full fine-tuning) distributed training backends
-- **Docker and Singularity containers** — the same image runs on AWS, GCP, NSCC ASPIRE, or a local GPU machine
-- **One command to train anywhere:** `./scripts/train.sh config.yaml`
+```
+1. Collect demonstrations on your robot  →  upload to HuggingFace Hub
+2. Run:  ./scripts/train.sh config.yaml  →  fine-tuned checkpoint on HF Hub
+3. Load checkpoint on your inference hardware  →  deploy
+```
+
+**What VLASH adds over standard LeRobot:**
+
+- **Asynchronous inference** via Temporal Delay Augmentation — overlaps inference
+  with execution for **29.5× lower latency** on embedded hardware
+- **LoRA + shared observation encoding** — fine-tune π₀.₅ on **12 GB VRAM**
+- **DeepSpeed ZeRO-2** (LoRA) and **FSDP** (full fine-tuning) distributed backends
+- **Docker + Singularity** — same image on AWS, GCP, NSCC ASPIRE, or a local GPU
+
+Validated end-to-end on a ball pick-and-place task: demonstrations collected on a
+Piper arm, fine-tuned on NSCC ASPIRE, deployed on a Jetson AGX Orin at 30 Hz —
+**65% task success rate** with async inference vs. 5% synchronous baseline.
 
 ## Demo
 
-[![Demo preview](assets/demo-first-frame.png)](https://www.youtube.com/watch?v=IgN7CNicJS8)
+π₀.₅ fine-tuned with VLASH performing ball pick-and-place on a Piper arm, running asynchronous inference on a Jetson AGX Orin at 30 Hz.
+
+<video src="assets/piper_demo.mp4" controls width="100%"></video>
 
 ---
 
@@ -188,7 +207,7 @@ docker build -t vlash:latest .
 
 Pull the Singularity image on HPC:
 ```bash
-singularity pull vlash.sif docker://frieddeli/vlash:latest
+singularity pull vlash.sif docker://frieddeli/vlash-forge:latest
 # For faster HPC transfer, build locally and copy:
 # scp vlash.sif user@nscc-server:${SCRATCH}/vlash.sif
 ```

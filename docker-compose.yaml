@@ -1,7 +1,7 @@
 services:
   train:
     build: .
-    image: vlash:latest
+    image: vlash-forge:latest
     runtime: nvidia
     environment:
       - HF_TOKEN=${HF_TOKEN}

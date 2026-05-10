@@ -52,5 +52,5 @@ else
         -e NUM_GPUS="${NUM_GPUS:-1}" \
         -e TRAIN_BACKEND="${TRAIN_BACKEND:-deepspeed}" \
         -e WANDB_API_KEY="${WANDB_API_KEY:-}" \
-        vlash:latest "${CONFIG}"
+        vlash-forge:latest "${CONFIG}"
 fi

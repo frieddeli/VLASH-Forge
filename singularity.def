@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: vlash:latest
+From: vlash-forge:latest
 
 # Bootstrap from the Docker image — single source of truth, no duplicated build logic.
 # Build: singularity build vlash.sif singularity.def

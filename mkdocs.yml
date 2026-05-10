@@ -1,0 +1,54 @@
+site_name: VLASH Forge
+site_description: Portable VLA fine-tuning on cloud and HPC — one command to train anywhere
+site_url: https://frieddeli.github.io/vlash-forge
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - content.code.annotate
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - First-time Setup: setup.md
+    - Storage Setup: storage.md
+    - Running Training: running.md
+  - Training:
+    - Backends (DeepSpeed / FSDP): backends.md
+    - GPU Requirements: gpu.md
+    - Config Reference: config.md
+  - Reference:
+    - Environment Variables: env-vars.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - tables
+  - attr_list
+  - md_in_html
