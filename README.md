@@ -78,7 +78,7 @@ Piper arm, fine-tuned on NSCC ASPIRE, deployed on a Jetson AGX Orin at 30 Hz —
 
 π₀.₅ fine-tuned with VLASH performing ball pick-and-place on a Piper arm, running asynchronous inference on a Jetson AGX Orin at 30 Hz.
 
-<video src="assets/piper_demo.mp4" controls width="100%"></video>
+[![Demo video](assets/demo-first-frame.png)](assets/piper_demo.mp4)
 
 ---
 
