@@ -1,19 +1,61 @@
+# Accelerate + FSDP configuration for VLASH full fine-tuning (no LoRA).
+#
+# Use this when lora.enable: false in your training config.
+# FSDP shards model parameters, gradients, and optimizer states across GPUs
+# (equivalent to DeepSpeed ZeRO-3), enabling full fine-tuning of pi0/pi0.5
+# on multi-GPU setups without CPU offloading.
+#
+# Minimum GPU memory for full fine-tuning:
+#   pi0.5 (1.3B): ~40 GB per GPU  → 4×A100 40GB or 2×A100 80GB
+#   pi0   (3B):   ~80 GB per GPU  → 4×A100 80GB or 4×H100
+#
+# Select at runtime via: TRAIN_BACKEND=fsdp ./scripts/train.sh config.yaml
+# The --num_processes flag overrides num_processes below.
+
 compute_environment: LOCAL_MACHINE
 debug: false
-distributed_type: DEEPSPEED
-downcast_bf16: 'no'
-machine_rank: 0
-main_training_function: main
+distributed_type: FSDP
 mixed_precision: bf16
+downcast_bf16: 'no'
+
 num_machines: 1
-num_processes: 4
+num_processes: 4   # overridden at runtime by --num_processes
+machine_rank: 0
+
 rdzv_backend: static
 same_network: true
 use_cpu: false
-deepspeed_config:
-  gradient_accumulation_steps: 4
-  gradient_clipping: 1.0
-  offload_optimizer_device: none
-  offload_param_device: none
-  zero3_init_flag: false
-  zero_stage: 2
+
+fsdp_config:
+  # FULL_SHARD: shards parameters + gradients + optimizer states (ZeRO-3 equivalent)
+  # SHARD_GRAD_OP: shards gradients + optimizer states only (ZeRO-2 equivalent, less comm.)
+  fsdp_sharding_strategy: FULL_SHARD
+
+  # Wrap policy: TRANSFORMER_BASED_WRAP groups layers by transformer block,
+  # giving FSDP well-defined shard boundaries and better memory balance.
+  fsdp_auto_wrap_policy: TRANSFORMER_BASED_WRAP
+
+  # The transformer decoder layer class used by pi0/pi0.5 (PaliGemma backbone).
+  # If wrapping fails, switch to SIZE_BASED_WRAP and remove this field.
+  fsdp_transformer_layer_cls_to_wrap: GemmaDecoderLayer
+
+  # Prefetch next shard during backward pass to hide communication latency.
+  fsdp_backward_prefetch_policy: BACKWARD_PRE
+  fsdp_forward_prefetch: false
+
+  # Reconstruct full state dict on rank 0 for checkpointing.
+  # FULL_STATE_DICT is compatible with lerobot's save_checkpoint utility.
+  fsdp_state_dict_type: FULL_STATE_DICT
+
+  # Broadcast rank-0 parameters to all ranks on init (required for pre-trained models).
+  fsdp_sync_module_states: true
+
+  # Keep original param names in the state dict (needed for lerobot checkpoint loading).
+  fsdp_use_orig_params: true
+
+  # CPU offload: disabled. Enabling cuts GPU memory but adds 2-4x slowdown.
+  fsdp_offload_params: false
+
+  # Activation checkpointing: recomputes activations during backward to save memory.
+  # Enable if still OOM after tuning batch_size / grad_accum_steps.
+  fsdp_activation_checkpointing: false

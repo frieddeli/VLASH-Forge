@@ -186,11 +186,7 @@ singularity pull vlash.sif docker://frieddeli/vlash:latest
 ### Option B — Docker Compose (single-node multi-GPU)
 
 ```bash
-export SCRATCH=/your/persistent/storage
-export HF_TOKEN=<your_hf_token>
-export DATASET_REPO_ID=<your-org/your-dataset>
-export NUM_GPUS=4
-
+cp .env.example .env   # fill in HF_TOKEN, DATASET_REPO_ID, SCRATCH
 docker-compose up
 ```
 
@@ -205,6 +201,31 @@ kubectl create secret generic hf-secret --from-literal=token=<YOUR_HF_TOKEN>
 kubectl apply -f k8s/training-job.yaml
 kubectl logs -f job/vlash-train
 ```
+
+---
+
+## GPU Requirements
+
+| Model | Fine-tuning mode | Min VRAM per GPU | Recommended |
+|-------|-----------------|-----------------|-------------|
+| π₀.₅ (1.3B) | LoRA (r=16) | 12 GB | RTX 3090 / A10G / T4 |
+| π₀.₅ (1.3B) | Full (`TRAIN_BACKEND=fsdp`) | 40 GB | 4×A100 40GB |
+| π₀ (3B) | LoRA (r=16) | 24 GB | RTX 4090 / A100 40GB |
+| π₀ (3B) | Full (`TRAIN_BACKEND=fsdp`) | 80 GB | 4×A100 80GB / 4×H100 |
+
+For LoRA on AWS: `g5.xlarge` (1×A10G 24GB) is the minimum; `g5.12xlarge` (4×A10G) for multi-GPU.
+For full fine-tuning on AWS: `p4d.24xlarge` (8×A100 40GB) or `p4de.24xlarge` (8×A100 80GB).
+
+### Out of memory (OOM)
+
+If training crashes with CUDA OOM, apply these in order:
+
+1. **Reduce `batch_size`** to 1 in your training config
+2. **Increase `grad_accum_steps`** to keep the same effective batch size
+3. **Enable `gradient_checkpointing: true`** in the policy section (~20% slower, saves ~30% VRAM)
+4. **Reduce `lora.r`** from 16 to 8 (halves LoRA parameter count)
+5. **Switch to QLoRA** — set `lora.use_qlora: true` (4-bit base model, fits pi0.5 in 8GB)
+6. **Full fine-tuning only**: enable `fsdp_activation_checkpointing: true` in `configs/fsdp_config.yaml`
 
 ---
 

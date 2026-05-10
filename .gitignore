@@ -26,7 +26,10 @@ share/python-wheels/
 MANIFEST
 /.deps/
 
-outputs/# pixi environments
+outputs/
+logs/
+.env
+# pixi environments
 .pixi/*
 
 

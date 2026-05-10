@@ -22,7 +22,17 @@ if [ -n "$HF_TOKEN" ]; then
     echo "[entrypoint] HuggingFace login complete"
 fi
 
+# Select accelerate backend:
+#   TRAIN_BACKEND=deepspeed  (default) — ZeRO-2, best for LoRA fine-tuning
+#   TRAIN_BACKEND=fsdp                 — full parameter sharding, for full fine-tuning
+case "${TRAIN_BACKEND:-deepspeed}" in
+    fsdp)      ACCEL_CONFIG="/workspace/configs/fsdp_config.yaml" ;;
+    deepspeed) ACCEL_CONFIG="/workspace/configs/deepspeed_config.yaml" ;;
+    *)         echo "[entrypoint] Unknown TRAIN_BACKEND=${TRAIN_BACKEND}"; exit 1 ;;
+esac
+echo "[entrypoint] Using accelerate config: ${ACCEL_CONFIG}"
+
 exec pixi run accelerate launch \
-    --config_file /workspace/deepspeed_config.yaml \
+    --config_file "${ACCEL_CONFIG}" \
     --num_processes "${NUM_GPUS:-1}" \
     -m vlash.train "$@"

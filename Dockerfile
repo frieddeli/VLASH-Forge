@@ -28,11 +28,11 @@ WORKDIR /workspace
 # Copy project metadata; pixi will generate lockfile fresh during build
 COPY pyproject.toml ./
 
-# Copy source code and config
+# Copy source code and configs
 COPY vlash/ vlash/
 COPY benchmarks/ benchmarks/
 COPY examples/ examples/
-COPY deepspeed_config.yaml ./
+COPY configs/ configs/
 
 # Resolve and install all Python/ML dependencies via pixi.
 # CUDA toolkit is already in the base image so pip uses the system gcc

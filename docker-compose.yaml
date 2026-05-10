@@ -5,16 +5,17 @@ services:
     runtime: nvidia
     environment:
       - HF_TOKEN=${HF_TOKEN}
-      - HF_HOME=/hf_cache
+      - HF_HOME=/scratch/.cache/huggingface
+      - DATASET_REPO_ID=${DATASET_REPO_ID}
       - NUM_GPUS=${NUM_GPUS:-4}
+      # deepspeed (default, LoRA fine-tuning) or fsdp (full fine-tuning)
+      - TRAIN_BACKEND=${TRAIN_BACKEND:-deepspeed}
       - WANDB_API_KEY=${WANDB_API_KEY:-}
     volumes:
-      # Persistent model cache — avoids re-downloading 10GB+ weights on restart
-      - ${HF_CACHE_PATH:-./hf_cache}:/hf_cache
-      # Dataset directory (LeRobot format)
-      - ${DATASET_PATH:-./data}:/data
-      # Training outputs: checkpoints and logs
-      - ${OUTPUT_PATH:-./outputs}:/workspace/outputs
+      # Single bind-mount: host persistent storage → /scratch inside container.
+      # Set SCRATCH in .env or your shell to your mounted disk path.
+      # See .env.example for all required variables.
+      - ${SCRATCH}:/scratch
     command: examples/train/pi05/cloud.yaml
     # NCCL requires shared memory and host networking for multi-GPU communication
     ipc: host
