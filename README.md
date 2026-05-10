@@ -50,6 +50,69 @@ VLASH is easy to use with:
 
 ---
 
+## First-time setup
+
+Before running training you need three things: a HuggingFace account with a
+token, access to the gated base model, and your dataset uploaded to HF Hub.
+This is a one-time process per account.
+
+### 1. HuggingFace token
+
+Create an account at [huggingface.co](https://huggingface.co) if you don't have one.
+Generate a token with **write** permission at
+`huggingface.co/settings/tokens` — write access is needed to push trained
+checkpoints back to the Hub.
+
+Keep this token as `HF_TOKEN` in your environment. Never commit it to the repo.
+
+### 2. Accept the base model licenses
+
+VLASH fine-tunes PaliGemma-based models that are gated — you must accept the
+license on the HF website once before your token can download the weights.
+
+Visit each model page and click **Agree and access repository**:
+
+- **π₀.₅** — `huggingface.co/lerobot/pi05_base`
+- **π₀** — `huggingface.co/lerobot/pi0_base`
+
+Acceptance is per-account and propagates immediately. The container downloads
+the weights automatically on first run using your `HF_TOKEN`; subsequent runs
+use the cache in `$SCRATCH/.cache/huggingface`.
+
+### 3. Upload your dataset
+
+Your dataset must be in [LeRobot format](https://github.com/huggingface/lerobot)
+(`data/`, `videos/`, `meta/` folders with a `meta/info.json`).
+
+```bash
+# Authenticate (once per machine)
+huggingface-cli login --token $HF_TOKEN
+
+# Create the dataset repo
+huggingface-cli repo create your-dataset-name --type dataset --private
+
+# Upload — preserves directory structure exactly
+huggingface-cli upload your-hf-username/your-dataset-name \
+  /path/to/local/lerobot/dataset/ \
+  --repo-type dataset
+```
+
+Set `DATASET_REPO_ID=your-hf-username/your-dataset-name` when running training.
+The container downloads it automatically via `HF_TOKEN`.
+
+**Team / shared datasets:** create a [HuggingFace organisation](https://huggingface.co/organizations/new),
+push under `your-org/your-dataset-name`, and invite collaborators at
+`huggingface.co/your-org` → Settings → Members.
+
+### 4. (Optional) Push trained checkpoints back to Hub
+
+Set `push_to_hub: true` and `repo_id: your-org/your-model` in your training
+config to automatically upload the final LoRA checkpoint after training.
+This is the recommended way to persist checkpoints beyond the scratch disk
+lifetime on HPC clusters.
+
+---
+
 ## Getting Started
 
 ### Storage setup (all environments)
@@ -142,41 +205,6 @@ kubectl create secret generic hf-secret --from-literal=token=<YOUR_HF_TOKEN>
 kubectl apply -f k8s/training-job.yaml
 kubectl logs -f job/vlash-train
 ```
-
----
-
-## Dataset Preparation
-
-VLASH loads datasets from HuggingFace Hub at training time. Your dataset must be in [LeRobot format](https://github.com/huggingface/lerobot) (the `data/`, `videos/`, `meta/` folder structure with a `meta/info.json`).
-
-### Upload a local dataset to HuggingFace
-
-```bash
-# Login once
-huggingface-cli login
-
-# Create the dataset repo (once)
-huggingface-cli repo create your-dataset-name --type dataset --private
-
-# Upload the folder (preserves directory structure exactly)
-huggingface-cli upload your-hf-username/your-dataset-name \
-  /path/to/local/lerobot/dataset/ \
-  --repo-type dataset
-```
-
-Then set `DATASET_REPO_ID=your-hf-username/your-dataset-name` in your `docker run` command — the container downloads it automatically at training start via `HF_TOKEN`.
-
-### Team / shared datasets
-
-For shared write access, create a [HuggingFace organization](https://huggingface.co/organizations/new) and push under the org:
-
-```bash
-huggingface-cli upload your-org-name/your-dataset-name \
-  /path/to/local/lerobot/dataset/ \
-  --repo-type dataset
-```
-
-Invite collaborators at `huggingface.co/your-org-name` → Settings → Members. Set `DATASET_REPO_ID=your-org-name/your-dataset-name` in your training command.
 
 ---
 
