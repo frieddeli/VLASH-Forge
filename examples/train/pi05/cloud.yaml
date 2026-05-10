@@ -1,45 +1,70 @@
-# Cloud-agnostic training config for pi0.5 with LoRA + DeepSpeed ZeRO-2.
-# Designed to run inside the Docker/Singularity container on any cloud GPU instance.
+# Cloud/HPC training config for pi0.5 with LoRA + DeepSpeed ZeRO-2.
+# Designed to run inside the Docker/Singularity container on any GPU instance.
 #
-# Required environment variables:
-#   HF_TOKEN          - HuggingFace token (needed for gated models + Hub push)
-#   DATASET_REPO_ID   - HuggingFace dataset repo ID, e.g. "your-org/your-dataset"
+# ── Runtime environment variables (set before singularity run / docker run) ──
+#   HF_TOKEN          - HuggingFace token (required: gated model download + Hub push)
+#   DATASET_REPO_ID   - HF dataset repo, e.g. "your-org/your-dataset"
+#   NUM_GPUS          - number of GPUs to use (default: 1)
+#   WANDB_API_KEY     - W&B API key (required when wandb.enable: true below)
 #
-#   Upload your dataset first (LeRobot format, preserving data/videos/meta/ structure):
-#     huggingface-cli repo create your-dataset-name --type dataset --private
-#     huggingface-cli upload your-org/your-dataset /path/to/local/dataset/ --repo-type dataset
+# ── First-time dataset upload ─────────────────────────────────────────────────
+#   huggingface-cli repo create your-dataset-name --type dataset --private
+#   huggingface-cli upload your-org/your-dataset /path/to/local/dataset/ --repo-type dataset
 #
-# Optional:
-#   NUM_GPUS          - number of GPUs (default: 1, set in docker-entrypoint.sh)
-#   WANDB_API_KEY     - W&B API key for logging
+# ── Local workstation (no container) ─────────────────────────────────────────
+#   Override any flag on the CLI, e.g.:
+#     vlash train examples/train/pi05/cloud.yaml \
+#       dataset.repo_id=/absolute/path/to/local/dataset \   # local path skips HF download
+#       dataset.video_backend=pyav \                        # pyav needs no GPU decoder
+#       output_dir=outputs/pi05_local \
+#       num_workers=2 \
+#       batch_size=1 \
+#       grad_accum_steps=4
 
 policy:
   type: pi05
-  pretrained_path: lerobot/pi05_base   # downloaded at runtime via HF_TOKEN
+  # LOCAL: replace with an absolute path to a pre-downloaded model folder
+  #   pretrained_path: /path/to/pi05_base
+  # CLOUD: HF Hub ID — downloaded at runtime using HF_TOKEN; cached in HF_HOME
+  pretrained_path: lerobot/pi05_base
 
-  # Hub push: set push_to_hub: true and fill in repo_id to automatically upload
-  # the final LoRA checkpoint + model card after training completes.
-  # The model card will reference dataset.repo_id as the training dataset.
-  # Intermediate checkpoints are saved locally to output_dir only.
+  # Set push_to_hub: true to auto-upload the final checkpoint to HF Hub after training.
+  # The generated model card will reference dataset.repo_id as the training source.
+  # Intermediate checkpoints are written to output_dir only.
   push_to_hub: false
-  # repo_id: your-org/vlash-models     # ← uncomment and set when push_to_hub: true
-  # private: true                       # ← set false to make the model public
+  # repo_id: your-org/vlash-models   # ← required when push_to_hub: true
+  # private: true                    # ← false to make the model public
 
   dtype: bfloat16
   device: cuda
   state_cond: true
 
 dataset:
-  repo_id: ${DATASET_REPO_ID}          # e.g. your-org/your-dataset
+  # CLOUD: set via DATASET_REPO_ID env var → HF Hub dataset, auto-downloaded at runtime
+  # LOCAL: pass an absolute path on the CLI (dataset.repo_id=/your/path) to skip HF entirely
+  repo_id: ${DATASET_REPO_ID}
+
+  # Dataset cache inside the container — lives on the /scratch bind-mount so it
+  # persists across runs and is not re-downloaded on every container restart.
+  # LOCAL swap: omit root entirely to use the default ~/.cache/lerobot
+  root: /scratch/.cache/lerobot
+
+  # torchcodec: GPU-accelerated decoder, best on cloud/HPC (requires CUDA)
+  # LOCAL swap: pyav — CPU decoder, works everywhere, no extra setup
   video_backend: torchcodec
 
-output_dir: /workspace/outputs/pi05_cloud
+# Checkpoints written to /scratch so they survive container exit.
+# /scratch is bind-mounted from the host by scripts/train.sh.
+# LOCAL swap: output_dir: outputs/pi05_local  (relative path)
+output_dir: /scratch/outputs/pi05_cloud
 job_name: pi05_cloud
 
 batch_size: 1
-grad_accum_steps: 8   # effective batch size: 1 x 8 = 8
+grad_accum_steps: 8   # effective batch size per optimizer step: 1 x NUM_GPUS x 8
+# LOCAL swap: reduce grad_accum_steps to 4 or 2 if running on a single smaller GPU
 steps: 50000
 num_workers: 4
+# LOCAL swap: num_workers: 2 (scale to your CPU count; too many workers hurt on laptop)
 seed: 1000
 
 use_policy_training_preset: false
@@ -60,10 +85,16 @@ save_checkpoint: true
 save_freq: 10000
 
 log_freq: 200
+
+# ── Weights & Biases experiment tracking ──────────────────────────────────────
+# To enable: set enable: true and export WANDB_API_KEY=your_key in your job script.
+# W&B streams loss, grad_norm, lr, and policy auxiliary metrics every log_freq steps.
+# disable_artifact: true keeps checkpoint files local only; set false to also upload
+# checkpoint artifacts to W&B as versioned model artifacts.
 wandb:
-  enable: false   # set to true and provide WANDB_API_KEY to enable
+  enable: false
   project: vlash
-  entity: null
+  entity: null   # set to your W&B team/org name if using a shared workspace
   disable_artifact: true
 
 max_delay_steps: 8

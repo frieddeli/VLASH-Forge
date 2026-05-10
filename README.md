@@ -52,81 +52,90 @@ VLASH is easy to use with:
 
 ## Getting Started
 
-### Option A — Docker (recommended for cloud)
+### Storage setup (all environments)
 
-**Prerequisites:** Docker with [NVIDIA Container Runtime](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed. The image is based on `nvcr.io/nvidia/cuda:12.6.3-devel-ubuntu24.04` — Docker will pull it automatically on first build (~5 GB base layer, cached afterwards).
+Every environment needs a persistent directory that the container mounts as `/scratch`.
+This is where model weights, datasets, and checkpoints all live — nothing important is written
+inside the container itself.
+
+Set `SCRATCH` to wherever your persistent storage is before running:
 
 ```bash
-# 1. Build the image (no GPU needed for build)
-docker build -t vlash:latest .
+# HPC (NSCC ASPIRE / SLURM)
+export SCRATCH=/scratch/users/ntu/<your-id>
 
-# 2. Verify GPU access inside the container
-docker run --rm --gpus all vlash:latest \
-  pixi run python -c "import torch; print(torch.cuda.is_available())"
+# AWS — EBS volume mounted at /mnt/ebs
+export SCRATCH=/mnt/ebs
 
-# 3. Run training (set your HuggingFace token and dataset)
-docker run --rm --gpus all \
-  -e HF_TOKEN=<your_hf_token> \
-  -e DATASET_REPO_ID=<your-org/your-dataset> \
-  -v $(pwd)/outputs:/workspace/outputs \
-  -v $(pwd)/hf_cache:/hf_cache \
-  -e HF_HOME=/hf_cache \
-  vlash:latest examples/train/pi05/cloud.yaml
+# GCP — Persistent Disk mounted at /mnt/pd
+export SCRATCH=/mnt/pd
+
+# GCP — GCS bucket via FUSE (mount first: gcsfuse your-bucket /mnt/gcs)
+export SCRATCH=/mnt/gcs
+
+# Local workstation
+export SCRATCH=$HOME/vlash-scratch && mkdir -p $SCRATCH
 ```
 
-> **First-run note:** DeepSpeed and bitsandbytes compile CUDA extensions on the first training run. This takes ~1–3 minutes and is a one-time overhead — not a crash.
+Inside `/scratch` the layout is always:
+```
+$SCRATCH/
+  .cache/huggingface/   ← base model weights (pi0.5, PaliGemma) — ~10 GB, downloaded once
+  .cache/lerobot/       ← dataset videos and parquet files
+  outputs/              ← training checkpoints
+```
+
+---
+
+### Option A — Unified launcher (Docker or Singularity)
+
+`scripts/train.sh` detects whether `vlash.sif` exists and launches via Singularity (HPC)
+or Docker (cloud/local) automatically. It always binds `$SCRATCH` to `/scratch`.
+
+```bash
+export SCRATCH=/your/persistent/storage
+export HF_TOKEN=<your_hf_token>
+export DATASET_REPO_ID=<your-org/your-dataset>
+
+# Single GPU
+./scripts/train.sh examples/train/pi05/cloud.yaml
+
+# Multi-GPU
+NUM_GPUS=4 ./scripts/train.sh examples/train/pi05/cloud.yaml
+```
+
+**Prerequisites:** Docker with [NVIDIA Container Runtime](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed, or Singularity with `vlash.sif` present in the working directory.
+
+Build the Docker image if you haven't already (no GPU needed):
+```bash
+docker build -t vlash:latest .
+```
+
+Pull the Singularity image on HPC:
+```bash
+singularity pull vlash.sif docker://frieddeli/vlash:latest
+# For faster HPC transfer, build locally and scp:
+# scp vlash.sif user@nscc-server:${SCRATCH}/vlash.sif
+```
+
+> **First-run note:** DeepSpeed and bitsandbytes compile CUDA extensions on the first training run (~1–3 minutes). This is a one-time overhead cached in `$SCRATCH/.cache`.
 
 ### Option B — Docker Compose (single-node multi-GPU)
 
 ```bash
-# Copy and fill in environment variables
-cp .env.example .env   # or export them directly
-
+export SCRATCH=/your/persistent/storage
 export HF_TOKEN=<your_hf_token>
+export DATASET_REPO_ID=<your-org/your-dataset>
 export NUM_GPUS=4
 
 docker-compose up
 ```
 
-### Option C — Singularity / HPC (NSCC ASPIRE or any SLURM cluster)
+### Option C — Kubernetes
 
-**Step 1 — Pull the image from Docker Hub (on your local machine or HPC login node)**
-
-```bash
-# Pull and convert the Docker image to Singularity format
-singularity pull vlash.sif docker://frieddeli/vlash:latest
-
-# This creates vlash.sif (~10–15 GB, takes ~5–10 minutes)
-# For faster transfer to HPC, you can build locally and scp it:
-# scp vlash.sif user@nscc-server:/scratch/users/ntu/<your-id>/vlash.sif
-```
-
-**Step 2 — Run training on HPC**
-
-```bash
-# On NSCC ASPIRE (PBS scheduler)
-singularity run --nv \
-  -B /scratch/users/ntu/m230060:/scratch \
-  vlash.sif examples/train/pi05/cloud.yaml
-
-# For multi-GPU with 4 GPUs:
-export NUM_GPUS=4
-singularity run --nv \
-  -B /scratch/users/ntu/m230060:/scratch \
-  vlash.sif examples/train/pi05/cloud.yaml
-```
-
-The entrypoint automatically normalises `CUDA_VISIBLE_DEVICES` from PBSpro UUID format to integer indices — no manual export needed in your PBS job script.
-
-**Alternatively**, build the Singularity image locally from the recipe:
-
-```bash
-singularity build vlash.sif singularity.def
-```
-
-### Option D — Kubernetes
-
-See [k8s/training-job.yaml](k8s/training-job.yaml) for a complete Kubernetes Job manifest with GPU resource requests and persistent volume claims for model cache and outputs.
+See [k8s/training-job.yaml](k8s/training-job.yaml) for a complete Kubernetes Job manifest.
+PersistentVolumeClaims in the manifest replace the `/scratch` bind-mount — the underlying
+storage (EBS, Filestore, GCS) is configured in the PVC spec, invisible to the container.
 
 ```bash
 kubectl create secret generic hf-secret --from-literal=token=<YOUR_HF_TOKEN>

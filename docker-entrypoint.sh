@@ -11,9 +11,12 @@ if [[ "$CUDA_VISIBLE_DEVICES" == GPU-* ]] || [[ "$CUDA_VISIBLE_DEVICES" == *,GPU
     echo "[entrypoint] Normalized CUDA_VISIBLE_DEVICES → $CUDA_VISIBLE_DEVICES"
 fi
 
+# Default HF cache to /scratch so model weights persist across container restarts.
+# /scratch is always a bind-mount from the host (EBS, HPC scratch, etc.) —
+# see scripts/train.sh for how this is set up per environment.
+export HF_HOME="${HF_HOME:-/scratch/.cache/huggingface}"
+
 # Log into HuggingFace so gated models (pi0.5, pi0) can be downloaded.
-# Mount a persistent volume at HF_HOME to avoid re-downloading 10GB+ weights
-# on every container restart.
 if [ -n "$HF_TOKEN" ]; then
     huggingface-cli login --token "$HF_TOKEN" --add-to-git-credential 2>/dev/null
     echo "[entrypoint] HuggingFace login complete"
