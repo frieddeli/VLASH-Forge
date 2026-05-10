@@ -15,6 +15,24 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
     <a href="https://youtu.be/PLACEHOLDER"><b>Demo Video</b></a>
 </p>
 
+<p align="center">
+  <a href="https://arxiv.org/abs/2512.01031">
+    <img src="https://img.shields.io/badge/Based%20on-arXiv%3A2512.01031-b31b1b.svg" alt="Based on arXiv:2512.01031">
+  </a>
+  <a href="https://hub.docker.com/r/frieddeli/vlash">
+    <img src="https://img.shields.io/badge/Docker-frieddeli%2Fvlash-2496ED?logo=docker&logoColor=white" alt="Docker Hub">
+  </a>
+  <a href="https://huggingface.co/lerobot/pi05_base">
+    <img src="https://img.shields.io/badge/🤗-pi0.5%20%7C%20pi0-FFD21E" alt="HuggingFace Models">
+  </a>
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
+  <img src="https://img.shields.io/badge/CUDA-12.6-76B900?logo=nvidia&logoColor=white" alt="CUDA 12.6">
+  <img src="https://img.shields.io/badge/DeepSpeed-ZeRO--2-9B59B6" alt="DeepSpeed ZeRO-2">
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License">
+  </a>
+</p>
+
 ---
 
 ## Group Members
@@ -27,22 +45,21 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
 
 ## About
 
-VLASH is an efficient and easy-to-use framework for VLAs fine-tuning and inference.
+VLASH is an efficient and easy-to-use framework for VLA fine-tuning and deployment, built on top of [LeRobot](https://github.com/huggingface/lerobot).
 
-VLASH is efficient through:
+**Efficient:**
 
-- Asynchronous inference for **fast reaction and smooth motion** in real-time (**>30Hz inference frequency** for $\pi_{0.5}$ on RTX 5090)
-- Future-state-awareness to enable **stable asynchronous VLA inference without overhead**
-- Action quantization for **faster robot execution speed**
-- LoRA with shared observation encoding for **efficient fine-tuning on consumer GPUs**
+- Asynchronous inference for **fast reaction and smooth motion** in real-time (**>30Hz** for $\pi_{0.5}$ on RTX 5090)
+- Future-state-awareness for **stable async inference without synchronisation overhead**
+- Action quantization for **faster robot execution**
+- LoRA + shared observation encoding for **efficient fine-tuning on consumer GPUs** (12 GB VRAM)
 
-VLASH is easy to use with:
+**Easy to use:**
 
-- **Seamless integration with [LeRobot](https://github.com/huggingface/lerobot)** datasets (v2.1, v3.0), models and robots
-- Simple YAML-based configuration system
-- Support for various policy architectures (e.g., $\pi_{0.5}$, $\pi_0$, ...)
-- Easy deployment on real robot hardware
-- **Docker and Singularity containers** for reproducible cloud and HPC deployment
+- Seamless integration with LeRobot datasets (v2.1, v3.0), models, and robots
+- YAML-based configuration — all hyperparameters in one file, all secrets in environment variables
+- Docker and Singularity containers for reproducible deployment on cloud and HPC
+- One command to train on any infrastructure: `./scripts/train.sh config.yaml`
 
 ## Demo
 
@@ -264,7 +281,7 @@ vlash train examples/train/pi05/async_lora.yaml
 
 ```bash
 accelerate launch \
-  --config_file deepspeed_config.yaml \
+  --config_file configs/deepspeed_config.yaml \
   --num_processes 4 \
   -m vlash.train examples/train/pi05/cloud.yaml
 ```
