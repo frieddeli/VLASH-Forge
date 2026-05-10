@@ -12,7 +12,7 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
 <p align="center">
     <a href="https://arxiv.org/abs/2512.01031"><b>Paper</b></a>
     &nbsp;|&nbsp;
-    <a href="https://youtu.be/PLACEHOLDER"><b>Demo Video</b></a>
+    <b>Demo Video (coming soon)</b>
 </p>
 
 <p align="center">
@@ -49,7 +49,7 @@ VLASH is an efficient and easy-to-use framework for VLA fine-tuning and deployme
 
 **Efficient:**
 
-- Asynchronous inference for **fast reaction and smooth motion** in real-time (**>30Hz** for $\pi_{0.5}$ on RTX 5090)
+- Asynchronous inference for **fast reaction and smooth motion** in real-time (**>30 Hz** for π₀.₅ on RTX 5090)
 - Future-state-awareness for **stable async inference without synchronisation overhead**
 - Action quantization for **faster robot execution**
 - LoRA + shared observation encoding for **efficient fine-tuning on consumer GPUs** (12 GB VRAM)
@@ -63,22 +63,21 @@ VLASH is an efficient and easy-to-use framework for VLA fine-tuning and deployme
 
 ## Demo
 
-[![Watch the video](assets/demo-first-frame.png)](https://www.youtube.com/watch?v=IgN7CNicJS8)
+[![Demo preview](assets/demo-first-frame.png)](https://www.youtube.com/watch?v=IgN7CNicJS8)
 
 ---
 
-## First-time setup
+## First-time Setup
 
-Before running training you need three things: a HuggingFace account with a
-token, access to the gated base model, and your dataset uploaded to HF Hub.
+Before running training you need three things: a HuggingFace account with a token,
+access to the gated base models, and your dataset uploaded to HF Hub.
 This is a one-time process per account.
 
 ### 1. HuggingFace token
 
 Create an account at [huggingface.co](https://huggingface.co) if you don't have one.
-Generate a token with **write** permission at
-`huggingface.co/settings/tokens` — write access is needed to push trained
-checkpoints back to the Hub.
+Generate a token with **write** permission at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+— write access is needed to push trained checkpoints back to the Hub.
 
 Keep this token as `HF_TOKEN` in your environment. Never commit it to the repo.
 
@@ -89,8 +88,8 @@ license on the HF website once before your token can download the weights.
 
 Visit each model page and click **Agree and access repository**:
 
-- **π₀.₅** — `huggingface.co/lerobot/pi05_base`
-- **π₀** — `huggingface.co/lerobot/pi0_base`
+- **π₀.₅** — [huggingface.co/lerobot/pi05_base](https://huggingface.co/lerobot/pi05_base)
+- **π₀** — [huggingface.co/lerobot/pi0_base](https://huggingface.co/lerobot/pi0_base)
 
 Acceptance is per-account and propagates immediately. The container downloads
 the weights automatically on first run using your `HF_TOKEN`; subsequent runs
@@ -121,12 +120,11 @@ The container downloads it automatically via `HF_TOKEN`.
 push under `your-org/your-dataset-name`, and invite collaborators at
 `huggingface.co/your-org` → Settings → Members.
 
-### 4. (Optional) Push trained checkpoints back to Hub
+### 4. (Optional) Push trained checkpoints to Hub
 
-Set `push_to_hub: true` and `repo_id: your-org/your-model` in your training
-config to automatically upload the final LoRA checkpoint after training.
-This is the recommended way to persist checkpoints beyond the scratch disk
-lifetime on HPC clusters.
+Set `push_to_hub: true` and `repo_id: your-org/your-model` in your training config
+to automatically upload the final checkpoint after training. This is the recommended
+way to persist checkpoints beyond the scratch disk lifetime on HPC clusters.
 
 ---
 
@@ -135,7 +133,7 @@ lifetime on HPC clusters.
 ### Storage setup (all environments)
 
 Every environment needs a persistent directory that the container mounts as `/scratch`.
-This is where model weights, datasets, and checkpoints all live — nothing important is written
+Model weights, datasets, and checkpoints all live here — nothing important is written
 inside the container itself.
 
 Set `SCRATCH` to wherever your persistent storage is before running:
@@ -160,12 +158,10 @@ export SCRATCH=$HOME/vlash-scratch && mkdir -p $SCRATCH
 Inside `/scratch` the layout is always:
 ```
 $SCRATCH/
-  .cache/huggingface/   ← base model weights (pi0.5, PaliGemma) — ~10 GB, downloaded once
+  .cache/huggingface/   ← base model weights (~10 GB, downloaded once)
   .cache/lerobot/       ← dataset videos and parquet files
   outputs/              ← training checkpoints
 ```
-
----
 
 ### Option A — Unified launcher (Docker or Singularity)
 
@@ -177,16 +173,19 @@ export SCRATCH=/your/persistent/storage
 export HF_TOKEN=<your_hf_token>
 export DATASET_REPO_ID=<your-org/your-dataset>
 
-# Single GPU
+# Single GPU — LoRA fine-tuning (default)
 ./scripts/train.sh examples/train/pi05/cloud.yaml
 
-# Multi-GPU
+# Multi-GPU — LoRA fine-tuning
 NUM_GPUS=4 ./scripts/train.sh examples/train/pi05/cloud.yaml
+
+# Full fine-tuning (requires 40 GB+ VRAM per GPU)
+TRAIN_BACKEND=fsdp ./scripts/train.sh examples/train/pi05/cloud_full.yaml
 ```
 
 **Prerequisites:** Docker with [NVIDIA Container Runtime](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed, or Singularity with `vlash.sif` present in the working directory.
 
-Build the Docker image if you haven't already (no GPU needed):
+Build the Docker image if you haven't already (no GPU needed for build):
 ```bash
 docker build -t vlash:latest .
 ```
@@ -194,24 +193,37 @@ docker build -t vlash:latest .
 Pull the Singularity image on HPC:
 ```bash
 singularity pull vlash.sif docker://frieddeli/vlash:latest
-# For faster HPC transfer, build locally and scp:
+# For faster HPC transfer, build locally and copy:
 # scp vlash.sif user@nscc-server:${SCRATCH}/vlash.sif
 ```
 
-> **First-run note:** DeepSpeed and bitsandbytes compile CUDA extensions on the first training run (~1–3 minutes). This is a one-time overhead cached in `$SCRATCH/.cache`.
+> **First-run note:** DeepSpeed and bitsandbytes compile CUDA extensions on first use (~1–3 minutes). This is a one-time overhead cached in `$SCRATCH/.cache`.
 
 ### Option B — Docker Compose (single-node multi-GPU)
 
 ```bash
-cp .env.example .env   # fill in HF_TOKEN, DATASET_REPO_ID, SCRATCH
+cp .env.example .env   # fill in HF_TOKEN, DATASET_REPO_ID, SCRATCH, NUM_GPUS
 docker-compose up
 ```
 
-### Option C — Kubernetes
+### Option C — SLURM (HPC job scheduler)
 
-See [k8s/training-job.yaml](k8s/training-job.yaml) for a complete Kubernetes Job manifest.
-PersistentVolumeClaims in the manifest replace the `/scratch` bind-mount — the underlying
-storage (EBS, Filestore, GCS) is configured in the PVC spec, invisible to the container.
+```bash
+export SCRATCH=/scratch/users/ntu/<your-id>
+export HF_TOKEN=<your_hf_token>
+export DATASET_REPO_ID=<your-org/your-dataset>
+
+sbatch scripts/train_slurm.sbatch examples/train/pi05/cloud.yaml
+```
+
+Edit the `#SBATCH` directives at the top of [scripts/train_slurm.sbatch](scripts/train_slurm.sbatch)
+to match your cluster's partition name, GPU count, and time limit.
+
+### Option D — Kubernetes
+
+See [k8s/training-job.yaml](k8s/training-job.yaml) for a complete Job manifest.
+PersistentVolumeClaims replace the `/scratch` bind-mount — the underlying storage
+(EBS, Filestore, GCS) is configured in the PVC spec, invisible to the container.
 
 ```bash
 kubectl create secret generic hf-secret --from-literal=token=<YOUR_HF_TOKEN>
@@ -221,38 +233,45 @@ kubectl logs -f job/vlash-train
 
 ---
 
-## GPU Requirements
+## Training Backends
 
-| Model | Fine-tuning mode | Min VRAM per GPU | Recommended |
-|-------|-----------------|-----------------|-------------|
-| π₀.₅ (1.3B) | LoRA (r=16) | 12 GB | RTX 3090 / A10G / T4 |
-| π₀.₅ (1.3B) | Full (`TRAIN_BACKEND=fsdp`) | 40 GB | 4×A100 40GB |
-| π₀ (3B) | LoRA (r=16) | 24 GB | RTX 4090 / A100 40GB |
-| π₀ (3B) | Full (`TRAIN_BACKEND=fsdp`) | 80 GB | 4×A100 80GB / 4×H100 |
+Two backends are available, selected via the `TRAIN_BACKEND` environment variable:
 
-For LoRA on AWS: `g5.xlarge` (1×A10G 24GB) is the minimum; `g5.12xlarge` (4×A10G) for multi-GPU.
-For full fine-tuning on AWS: `p4d.24xlarge` (8×A100 40GB) or `p4de.24xlarge` (8×A100 80GB).
+| `TRAIN_BACKEND` | Method | When to use |
+|----------------|--------|-------------|
+| `deepspeed` (default) | DeepSpeed ZeRO-2 | LoRA fine-tuning — shards optimiser states and gradients, keeps params replicated |
+| `fsdp` | PyTorch FSDP FULL_SHARD | Full fine-tuning — shards params + optimiser states + gradients (ZeRO-3 equivalent) |
 
-### Out of memory (OOM)
+Use `deepspeed` (the default) for LoRA. Switch to `fsdp` only when running `lora.enable: false`
+in your config — full fine-tuning needs 40 GB+ VRAM per GPU and the `cloud_full.yaml` config.
 
-If training crashes with CUDA OOM, apply these in order:
-
-1. **Reduce `batch_size`** to 1 in your training config
-2. **Increase `grad_accum_steps`** to keep the same effective batch size
-3. **Enable `gradient_checkpointing: true`** in the policy section (~20% slower, saves ~30% VRAM)
-4. **Reduce `lora.r`** from 16 to 8 (halves LoRA parameter count)
-5. **Switch to QLoRA** — set `lora.use_qlora: true` (4-bit base model, fits pi0.5 in 8GB)
-6. **Full fine-tuning only**: enable `fsdp_activation_checkpointing: true` in `configs/fsdp_config.yaml`
+Both backends are single-node only (1–N GPUs on one machine). Multi-node training is not
+currently supported.
 
 ---
 
-## Multi-GPU Training
+## GPU Requirements
 
-VLASH uses [HuggingFace Accelerate](https://huggingface.co/docs/accelerate) with DeepSpeed ZeRO-2 for distributed training. The `deepspeed_config.yaml` at the repo root configures ZeRO-2 (optimizer state + gradient sharding), bf16 mixed precision, and gradient clipping.
+| Model | Mode | Min VRAM per GPU | Recommended hardware |
+|-------|------|-----------------|----------------------|
+| π₀.₅ (1.3B) | LoRA (`deepspeed`) | 12 GB | RTX 3090 / A10G / T4 |
+| π₀.₅ (1.3B) | Full (`fsdp`) | 40 GB | 4×A100 40GB |
+| π₀ (3B) | LoRA (`deepspeed`) | 24 GB | RTX 4090 / A100 40GB |
+| π₀ (3B) | Full (`fsdp`) | 80 GB | 4×A100 80GB / 4×H100 |
 
-The number of GPUs is controlled by the `NUM_GPUS` environment variable (default: 1). When using Docker Compose, set `NUM_GPUS=4` in your environment.
+AWS instance guide: `g5.xlarge` (1×A10G 24GB) for LoRA; `g5.12xlarge` (4×A10G) for multi-GPU LoRA;
+`p4d.24xlarge` (8×A100 40GB) or `p4de.24xlarge` (8×A100 80GB) for full fine-tuning.
 
-**ZeRO-2 vs DDP:** ZeRO-2 shards optimizer states and gradients across GPUs, roughly halving per-GPU memory vs vanilla DDP for the same batch size. For pi0.5 (~3B parameters) on 4×A100 this enables `batch_size=1` with `grad_accum_steps=8` without CPU offloading.
+### Out of memory (OOM)
+
+If training crashes with CUDA OOM, apply these fixes in order:
+
+1. **Reduce `batch_size`** to 1 in your training config
+2. **Increase `grad_accum_steps`** to maintain the same effective batch size
+3. **Enable `gradient_checkpointing: true`** in the policy section (~20% slower, saves ~30% VRAM)
+4. **Reduce `lora.r`** from 16 to 8 (halves LoRA parameter count)
+5. **Switch to QLoRA** — set `lora.use_qlora: true` (4-bit base model, fits π₀.₅ in 8 GB)
+6. **Full fine-tuning only** — enable `fsdp_activation_checkpointing: true` in `configs/fsdp_config.yaml`
 
 ---
 
@@ -269,30 +288,29 @@ pixi install
 pixi run python -c "import vlash; print('OK')"
 ```
 
-### Quick Examples
+### Quick examples
 
-**Fine-tune a VLA policy for your task:**
-
+**LoRA fine-tuning (single GPU):**
 ```bash
-vlash train examples/train/pi05/async_lora.yaml
+export DATASET_REPO_ID=your-org/your-dataset
+vlash train examples/train/pi05/cloud.yaml
 ```
 
 **Distributed training on 4 GPUs:**
-
 ```bash
+export DATASET_REPO_ID=your-org/your-dataset
 accelerate launch \
   --config_file configs/deepspeed_config.yaml \
   --num_processes 4 \
   -m vlash.train examples/train/pi05/cloud.yaml
 ```
 
-**Run async inference on a robot:**
-
+**Async inference on a robot:**
 ```bash
 vlash run examples/inference/async.yaml
 ```
 
-**Run async inference with 2x speedup:**
+**Async inference with 2× action speedup:**
 ```bash
 vlash run examples/inference/async.yaml --action_quant_ratio=2
 ```
@@ -300,16 +318,26 @@ vlash run examples/inference/async.yaml --action_quant_ratio=2
 ---
 
 ## TODO
-- [x] LoRA fine-tuning for $\pi_{0.5}$, $\pi_0$ under 12G GPU memory
-- [ ] QLoRA fine-tuning for $\pi_{0.5}$, $\pi_0$ under 8G GPU memory
-- [x] Efficient fine-tuning with shared observation
+
+- [x] LoRA fine-tuning for π₀.₅, π₀ under 12 GB GPU memory
+- [x] Full fine-tuning via FSDP for π₀.₅, π₀
+- [x] Efficient fine-tuning with shared observation encoding
 - [x] DeepSpeed ZeRO-2 distributed training
 - [x] Docker and Singularity containers for cloud/HPC deployment
+- [x] SLURM job script for HPC clusters
+- [ ] QLoRA fine-tuning for π₀.₅, π₀ under 8 GB GPU memory
+- [ ] Multi-node training support
 
-## Acknowledgment
+---
 
-This project is built upon the following excellent open-source projects: [LeRobot](https://github.com/huggingface/lerobot), [PEFT](https://github.com/huggingface/peft), [DeepSpeed](https://github.com/microsoft/DeepSpeed), [pixi](https://pixi.sh).
+## Acknowledgements
+
+This project is built upon the following open-source projects:
+[LeRobot](https://github.com/huggingface/lerobot),
+[PEFT](https://github.com/huggingface/peft),
+[DeepSpeed](https://github.com/microsoft/DeepSpeed),
+[pixi](https://pixi.sh).
 
 ## License
 
-Apache 2.0
+[Apache 2.0](LICENSE)
