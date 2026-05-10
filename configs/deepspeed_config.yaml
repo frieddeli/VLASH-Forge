@@ -7,17 +7,35 @@ compute_environment: LOCAL_MACHINE
 debug: false
 distributed_type: DEEPSPEED
 
-# Mixed precision: bf16 is numerically stable and natively supported on A100/H100.
-# Use fp16 only if your GPU does not support bf16 (e.g., older V100).
+# Mixed precision: bf16 is numerically stable and natively supported on A100/H100/4090.
+# V100 (AWS p3, common in older HPC nodes) does NOT support bf16 natively — PyTorch
+# will silently emulate it in fp32, negating the memory benefit. Switch to fp16 on V100:
+#   mixed_precision: fp16
+# fp16 is less numerically stable for large models; use a lower lr and watch for loss spikes.
 mixed_precision: bf16
 downcast_bf16: 'no'
 
-# Single-node multi-GPU. For multi-node, change num_machines and set main_process_ip.
+# ── Single-node constraint ────────────────────────────────────────────────────
+# This config targets 1–N GPUs on a SINGLE machine (one HPC node or one cloud VM).
+# compute_environment: LOCAL_MACHINE and rdzv_backend: static are correct for this case.
+#
+# Multi-node (multiple machines communicating over a network) requires:
+#   num_machines: <total machines>
+#   main_process_ip: <IP of rank-0 machine>
+#   main_process_port: 29500
+#   machine_rank: <0 on head, 1/2/... on workers>  ← different per node
+#   rdzv_backend: c10d
+#
+# Multi-node is not supported out of the box because each node needs a different
+# machine_rank injected at launch time — this requires MPI, SLURM srun --multi-prog,
+# or a Kubernetes operator to distribute the right rank to each pod/node.
+# For this project, single-node (up to 8×H100 on one DGX) covers the target scale.
 num_machines: 1
 num_processes: 4   # overridden at runtime by --num_processes; serves as documentation default
 machine_rank: 0
 
-# NCCL rendezvous — static is correct for single-node; use c10d for multi-node.
+# static rendezvous: all processes on localhost, no network discovery needed.
+# Switch to c10d for multi-node.
 rdzv_backend: static
 same_network: true
 use_cpu: false
