@@ -45,21 +45,17 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
 
 ## About
 
-VLASH is an efficient and easy-to-use framework for VLA fine-tuning and deployment, built on top of [LeRobot](https://github.com/huggingface/lerobot).
+VLASH is a fine-tuning and deployment framework for Vision-Language-Action models, built on top of [LeRobot](https://github.com/huggingface/lerobot). This repo packages it into a **portable, one-command training pipeline** so anyone can fine-tune π₀/π₀.₅ on their own robot task — whether on a cloud VM, an HPC cluster, or a local workstation — without needing to manage distributed training infrastructure from scratch.
 
-**Efficient:**
+The framework is validated end-to-end on a **ball pick-and-place task** using a Piper arm with inference on a Jetson AGX Orin: task demonstrations are collected on the robot, fine-tuning runs on cloud/HPC, and the resulting checkpoint deploys back to the Jetson for real-time 30 Hz control.
 
-- Asynchronous inference for **fast reaction and smooth motion** in real-time (**>30 Hz** for π₀.₅ on RTX 5090)
-- Future-state-awareness for **stable async inference without synchronisation overhead**
-- Action quantization for **faster robot execution**
-- LoRA + shared observation encoding for **efficient fine-tuning on consumer GPUs** (12 GB VRAM)
+**What VLASH adds over standard LeRobot training:**
 
-**Easy to use:**
-
-- Seamless integration with LeRobot datasets (v2.1, v3.0), models, and robots
-- YAML-based configuration — all hyperparameters in one file, all secrets in environment variables
-- Docker and Singularity containers for reproducible deployment on cloud and HPC
-- One command to train on any infrastructure: `./scripts/train.sh config.yaml`
+- **Asynchronous inference** via Temporal Delay Augmentation — overlaps model inference with robot execution for **29.5× lower latency** on embedded hardware
+- **LoRA + shared observation encoding** — fine-tune π₀.₅ on as little as **12 GB VRAM**
+- **DeepSpeed ZeRO-2** (LoRA) and **FSDP** (full fine-tuning) distributed training backends
+- **Docker and Singularity containers** — the same image runs on AWS, GCP, NSCC ASPIRE, or a local GPU machine
+- **One command to train anywhere:** `./scripts/train.sh config.yaml`
 
 ## Demo
 
