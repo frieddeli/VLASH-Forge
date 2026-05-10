@@ -1,0 +1,19 @@
+/* Constrain SVG icons throughout the site */
+.twemoji svg,
+.twemoji img {
+  width: 1.125em;
+  height: 1.125em;
+  vertical-align: middle;
+}
+
+/* Admonition icons */
+.admonition > .admonition-title::before,
+details > summary::before {
+  background-size: 1rem;
+}
+
+/* Navigation icons */
+.md-nav__icon svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
