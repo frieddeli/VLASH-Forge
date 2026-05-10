@@ -1,0 +1,1631 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Portable VLA fine-tuning on cloud and HPC — one command to train anywhere">
+      
+      
+      
+        <link rel="canonical" href="https://frieddeli.github.io/vlash-forge/IMPLEMENTATION_PLAN/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Implementation Plan: VLASH Cloud Deployment (COMP4651) - VLASH Forge</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#implementation-plan-vlash-cloud-deployment-comp4651" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="VLASH Forge" class="md-header__button md-logo" aria-label="VLASH Forge" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            VLASH Forge
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Implementation Plan: VLASH Cloud Deployment (COMP4651)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="black" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="black" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../index.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../setup.md" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../backends.md" class="md-tabs__link">
+          
+  
+  
+  Training
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../env-vars.md" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="VLASH Forge" class="md-nav__button md-logo" aria-label="VLASH Forge" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    VLASH Forge
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../index.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../setup.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First-time Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../storage.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Storage Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../running.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Running Training
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Training
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Training
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backends.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backends (DeepSpeed / FSDP)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../gpu.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GPU Requirements
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../config.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Config Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../env-vars.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environment Variables
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#confirmed-design-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Confirmed Design Decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#portability-audit-findings-pre-implementation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Portability Audit Findings (pre-implementation)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-0-dependency-cleanup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 0 — Dependency Cleanup
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 0 — Dependency Cleanup">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#01-update-pyprojecttoml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.1 Update pyproject.toml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#02-add-examplestrainpi05cloudyaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.2 Add examples/train/pi05/cloud.yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-1-docker-infrastructure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1 — Docker Infrastructure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1 — Docker Infrastructure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-dockerfile" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Dockerfile
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-docker-entrypointsh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 docker-entrypoint.sh
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-dockerignore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 .dockerignore
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-docker-composeyaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 docker-compose.yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#15-update-deepspeed_configyaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.5 Update deepspeed_config.yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-2-singularityhpc-support" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2 — Singularity/HPC Support
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2 — Singularity/HPC Support">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-singularitydef" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 singularity.def
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-3-kubernetes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3 — Kubernetes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 3 — Kubernetes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-k8straining-jobyaml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 k8s/training-job.yaml
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-4-documentation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4 — Documentation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 4 — Documentation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-update-readmemd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Update README.md
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-reportreportqmd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 report/report.qmd
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-5-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5 — Verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-change-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Change Summary
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-6-docker-build-testing-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6 — Docker Build &amp; Testing Verification
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 6 — Docker Build &amp; Testing Verification">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#docker-build-testing-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker Build &amp; Testing Checklist
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Docker Build &amp; Testing Checklist">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-build-the-image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Build the Image
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-test-python-imports-no-gpu-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Test Python Imports (No GPU Needed)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-interactive-debugging-shell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Interactive Debugging Shell
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-gpu-access-test-requires-gpu-hardware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: GPU Access Test (Requires GPU Hardware)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-smoke-test-training-requires-gpu-hf-token-dataset" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: Smoke Test Training (Requires GPU + HF Token + Dataset)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#troubleshooting-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting Reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#remaining-open-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remaining Open Items
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="implementation-plan-vlash-cloud-deployment-comp4651">Implementation Plan: VLASH Cloud Deployment (COMP4651)</h1>
+<h2 id="context">Context</h2>
+<p>VLASH is a VLA fine-tuning framework originally validated on the NSCC ASPIRE 2A HPC cluster. The original paper's team used 4×H100 with DDP, but the DDP code was never open-sourced. This project adapts VLASH for commercial cloud by: (1) implementing DeepSpeed ZeRO-2 distributed training (already partially done), and (2) packaging everything into portable Docker/Singularity containers. The assignment requires cloud computing focus, a ≤5-page QMD report, a 5-min video, and an updated README — all due May 17.</p>
+<p>No Docker files exist yet. The training pipeline, DeepSpeed config, LoRA support, and pixi environment are already in place.</p>
+<hr />
+<h2 id="confirmed-design-decisions">Confirmed Design Decisions</h2>
+<ul>
+<li><strong>GPU targets:</strong> Generic multi-GPU (CUDA arches 7.0+8.0+8.6+8.9+9.0 — covers V100, A100, A10, 4090, H100)</li>
+<li><strong>Container targets:</strong> Docker (docker-compose) + Singularity + Kubernetes Job manifest</li>
+<li><strong>Base image:</strong> <code>nvcr.io/nvidia/cuda:12.6.3-devel-ubuntu24.04</code> — NVIDIA's CUDA 12.6 devel image on Ubuntu 24.04. CUDA toolkit provided by the base image; <strong>not</strong> installed via pixi/conda-forge. This avoids pixi pulling in the conda cross-compiler (<code>x86_64-conda-linux-gnu-cc</code>) whose bundled sysroot has old kernel headers that break source builds of <code>evdev</code> (transitive dep: LeRobot → pynput → evdev). Without the conda cross-compiler, pip uses system gcc with Ubuntu 24.04 kernel headers (linux-libc-dev 6.8) which define all required input codes.</li>
+<li><strong>pixi at build time:</strong> <code>pixi install</code> runs during <code>docker build</code>, baking the full pixi.lock-pinned environment into the image. Fast cold starts, no internet needed at runtime.</li>
+<li><strong>Model downloads:</strong> <code>HF_TOKEN</code> env var → entrypoint logs in → HuggingFace downloads on first run and caches in <code>HF_HOME</code>. <code>HF_HOME</code> is a persistent volume mount so 10GB+ models are not re-downloaded on every container restart. Works on cloud (internet available) and NSCC compute nodes (internet confirmed available).</li>
+<li><strong>Report data:</strong> Existing training runs available; will run inference benchmarks inside container for real latency/FPS numbers.</li>
+</ul>
+<hr />
+<h2 id="portability-audit-findings-pre-implementation">Portability Audit Findings (pre-implementation)</h2>
+<p>Issues found and addressed in this plan:</p>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Severity</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reachy2_sdk</code> in base deps (robot-only SDK)</td>
+<td>Medium</td>
+<td>Move to <code>[robot]</code> optional extra in pyproject.toml</td>
+</tr>
+<tr>
+<td><code>flask</code> dependency (unused, zero imports)</td>
+<td>Low</td>
+<td>Remove from pyproject.toml</td>
+</tr>
+<tr>
+<td>Hardcoded NSCC paths in mytrain*.yaml examples</td>
+<td>High</td>
+<td>Add <code>examples/train/pi05/cloud.yaml</code> template with env var placeholders</td>
+</tr>
+<tr>
+<td>DeepSpeed + bitsandbytes lazy CUDA compile on first run</td>
+<td>Low</td>
+<td>Document in README (1-3 min overhead, not a bug)</td>
+</tr>
+<tr>
+<td><code>CUDA_VISIBLE_DEVICES</code> UUID format on PBSpro/NSCC</td>
+<td>Medium</td>
+<td>Auto-normalize in entrypoint (no-op on SLURM/cloud)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="phase-0-dependency-cleanup">Phase 0 — Dependency Cleanup</h2>
+<h3 id="01-update-pyprojecttoml">0.1 Update <code>pyproject.toml</code></h3>
+<ul>
+<li>Remove <code>flask</code> from base dependencies (zero imports anywhere)</li>
+<li>Move <code>reachy2_sdk</code> out of base deps into a new <code>[robot]</code> optional extra</li>
+<li>Add <code>[project.optional-dependencies]</code> section:
+  <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">[project.optional-dependencies]</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">robot</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;reachy2_sdk&quot;</span><span class="p">]</span>
+</code></pre></div></li>
+<li>Docker image installs base deps only (<code>pip install -e .</code>), not <code>[robot]</code></li>
+</ul>
+<h3 id="02-add-examplestrainpi05cloudyaml">0.2 Add <code>examples/train/pi05/cloud.yaml</code></h3>
+<p>Cloud-agnostic training config template. Uses environment variable placeholders for all paths:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">policy</span><span class="p">:</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pi05</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">pretrained_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lerobot/pi05_base</span><span class="w">   </span><span class="c1"># downloaded at runtime via HF_TOKEN</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="nt">dataset</span><span class="p">:</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">repo_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${DATASET_REPO_ID}</span><span class="w">          </span><span class="c1"># e.g. your-hf-username/your-dataset</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/workspace/outputs/pi05_cloud</span>
+</code></pre></div>
+The NSCC-specific <code>mytrain_piper_test3.yaml</code> and <code>mytrain.yaml</code> remain untouched as cluster references.</p>
+<hr />
+<h2 id="phase-1-docker-infrastructure">Phase 1 — Docker Infrastructure</h2>
+<h3 id="11-dockerfile">1.1 <code>Dockerfile</code></h3>
+<p><strong>Path:</strong> <code>/home/ray/Dev/COMP4651-Project/Dockerfile</code></p>
+<p>Single-stage build — <code>nvcr.io/nvidia/cuda:12.6.3-devel-ubuntu24.04</code> base, pixi owns Python/ML deps (CUDA provided by base image):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Base: nvcr.io/nvidia/cuda:12.6.3-devel-ubuntu24.04
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  → Install system deps: curl, git, ffmpeg, build-essential, libgl1
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  → Install pixi binary (curl from install.pixi.sh)
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  → COPY pyproject.toml ./  (no pixi.lock — regenerated fresh during build)
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  → COPY vlash/ benchmarks/ examples/ deepspeed_config.yaml ./
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  → pixi install  (resolves Python 3.12 + all ML deps; cuda-toolkit NOT in pixi deps)
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  → DeepSpeed/bitsandbytes CUDA ops compiled lazily at first training run
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>  → COPY docker-entrypoint.sh + chmod +x
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>  → ENTRYPOINT [&quot;./docker-entrypoint.sh&quot;]
+</code></pre></div>
+<p><strong>Key env vars set in Dockerfile:</strong>
+- <code>PATH=/root/.pixi/envs/default/bin:$PATH</code>
+- <code>LD_LIBRARY_PATH=/root/.pixi/envs/default/lib:/usr/local/cuda/lib64</code>
+- <code>CUDA_HOME=/usr/local/cuda</code>
+- <code>TORCH_CUDA_ARCH_LIST="7.0;8.0;8.6;8.9;9.0"</code>
+- <code>PIXI_FROZEN=1</code> — prevents pixi from attempting lockfile updates at runtime</p>
+<h3 id="12-docker-entrypointsh">1.2 <code>docker-entrypoint.sh</code></h3>
+<p><strong>Path:</strong> <code>/home/ray/Dev/COMP4651-Project/docker-entrypoint.sh</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="ch">#!/bin/bash</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">set</span><span class="w"> </span>-e
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Normalize CUDA_VISIBLE_DEVICES from UUID to integer indices.</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># PBSpro (NSCC ASPIRE) sets UUIDs: &quot;GPU-50ee0fc4-bb3d-920c-8039-da7054e1496b&quot;</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># NCCL and DeepSpeed require integer indices (0,1,2...).</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="c1"># Safe no-op on SLURM and commercial cloud (already integers or unset).</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$CUDA_VISIBLE_DEVICES</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">==</span><span class="w"> </span>GPU-*<span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$CUDA_VISIBLE_DEVICES</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">==</span><span class="w"> </span>*,GPU-*<span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">    </span><span class="nv">N</span><span class="o">=</span><span class="k">$(</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;</span><span class="nv">$CUDA_VISIBLE_DEVICES</span><span class="s2">&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tr<span class="w"> </span><span class="s1">&#39;,&#39;</span><span class="w"> </span><span class="s1">&#39;\n&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>wc<span class="w"> </span>-l<span class="k">)</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">    </span><span class="nb">export</span><span class="w"> </span><span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="k">$(</span>seq<span class="w"> </span>-s,<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="k">$((</span><span class="nv">N</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="m">1</span><span class="k">)))</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;[entrypoint] Normalized CUDA_VISIBLE_DEVICES → </span><span class="nv">$CUDA_VISIBLE_DEVICES</span><span class="s2">&quot;</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="k">fi</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># Log into HuggingFace (required for gated models like pi0.5).</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="c1"># Models are cached in HF_HOME — mount a persistent volume there to avoid</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># re-downloading 10GB+ weights on every container restart.</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$HF_TOKEN</span><span class="s2">&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">    </span>huggingface-cli<span class="w"> </span>login<span class="w"> </span>--token<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$HF_TOKEN</span><span class="s2">&quot;</span><span class="w"> </span>--add-to-git-credential<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="k">fi</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="nb">exec</span><span class="w"> </span>pixi<span class="w"> </span>run<span class="w"> </span>accelerate<span class="w"> </span>launch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">    </span>--config_file<span class="w"> </span>/workspace/deepspeed_config.yaml<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="w">    </span>--num_processes<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">NUM_GPUS</span><span class="k">:-</span><span class="nv">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="w">    </span>-m<span class="w"> </span>vlash.train<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$@</span><span class="s2">&quot;</span>
+</code></pre></div>
+<p><strong>HPC scheduler compatibility:</strong>
+- <strong>PBSpro (NSCC ASPIRE):</strong> UUID <code>CUDA_VISIBLE_DEVICES</code> → normalized to integers automatically
+- <strong>SLURM (~90% of global HPC):</strong> Already integers → UUID block skipped, no effect
+- <strong>Commercial cloud:</strong> Unset or integers → same, no effect
+- UUID format is a PBSpro-specific behaviour, not universal. Container is portable across all targets without modification.</p>
+<p><strong>Env vars:</strong>
+- <code>HF_TOKEN</code> — HuggingFace token (required for gated models)
+- <code>HF_HOME</code> — path to HF cache; mount a persistent volume here (default: <code>~/.cache/huggingface</code>)
+- <code>NUM_GPUS</code> — number of GPUs to use (default: 1; auto-detected by vlash CLI)
+- <code>WANDB_API_KEY</code> — optional W&amp;B logging</p>
+<h3 id="13-dockerignore">1.3 <code>.dockerignore</code></h3>
+<p><strong>Path:</strong> <code>/home/ray/Dev/COMP4651-Project/.dockerignore</code></p>
+<p>Excludes: <code>.pixi/</code>, <code>__pycache__/</code>, <code>*.egg-info/</code>, <code>outputs/</code>, <code>.git/</code>, <code>*.pyc</code>, <code>report/</code></p>
+<p><code>pixi.lock</code> must <strong>not</strong> be excluded — copied into image so <code>pixi install --frozen</code> resolves the exact pinned environment.</p>
+<h3 id="14-docker-composeyaml">1.4 <code>docker-compose.yaml</code></h3>
+<p><strong>Path:</strong> <code>/home/ray/Dev/COMP4651-Project/docker-compose.yaml</code></p>
+<p>Single-node multi-GPU setup:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">services</span><span class="p">:</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">train</span><span class="p">:</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">build</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">.</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vlash:latest</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="nt">runtime</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nvidia</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HF_TOKEN=${HF_TOKEN}</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HF_HOME=/hf_cache</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NUM_GPUS=${NUM_GPUS:-4}</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WANDB_API_KEY=${WANDB_API_KEY:-}</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${HF_CACHE_PATH:-./hf_cache}:/hf_cache</span><span class="w">      </span><span class="c1"># persistent model cache</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${DATASET_PATH:-./data}:/data</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${OUTPUT_PATH:-./outputs}:/workspace/outputs</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">    </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">examples/train/pi05/cloud.yaml</span>
+<a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">    </span><span class="nt">ipc</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">host</span><span class="w">          </span><span class="c1"># required for NCCL shared memory</span>
+<a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">    </span><span class="nt">network_mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">host</span><span class="w">  </span><span class="c1"># required for multi-GPU NCCL</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a><span class="w">    </span><span class="nt">deploy</span><span class="p">:</span>
+<a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="w">      </span><span class="nt">resources</span><span class="p">:</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="w">        </span><span class="nt">reservations</span><span class="p">:</span>
+<a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="w">          </span><span class="nt">devices</span><span class="p">:</span>
+<a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">driver</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nvidia</span>
+<a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">              </span><span class="nt">count</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">all</span>
+<a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">              </span><span class="nt">capabilities</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">gpu</span><span class="p p-Indicator">]</span>
+</code></pre></div></p>
+<h3 id="15-update-deepspeed_configyaml">1.5 Update <code>deepspeed_config.yaml</code></h3>
+<p>Add human-readable comments explaining each field for non-technical users. The <code>num_processes</code> field is overridden at runtime by the entrypoint's <code>--num_processes</code> flag, so it serves as a documentation default only.</p>
+<hr />
+<h2 id="phase-2-singularityhpc-support">Phase 2 — Singularity/HPC Support</h2>
+<h3 id="21-singularitydef">2.1 <code>singularity.def</code></h3>
+<p><strong>Path:</strong> <code>/home/ray/Dev/COMP4651-Project/singularity.def</code></p>
+<p>Bootstrap from the Docker image — single source of truth, no duplicate build logic:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>Bootstrap: docker
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>From: vlash:latest
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>%post
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    mkdir -p /scratch /data
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>%environment
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    export HF_HOME=${HF_HOME:-/scratch/.cache/huggingface}
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>%runscript
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    exec /workspace/docker-entrypoint.sh &quot;$@&quot;
+</code></pre></div>
+<p>Usage on NSCC:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>singularity<span class="w"> </span>build<span class="w"> </span>vlash.sif<span class="w"> </span>singularity.def
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>singularity<span class="w"> </span>run<span class="w"> </span>--nv<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span>-B<span class="w"> </span>/scratch/users/ntu/m230060:/scratch<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">    </span>vlash.sif<span class="w"> </span>examples/train/pi05/cloud.yaml
+</code></pre></div></p>
+<p>The entrypoint handles UUID <code>CUDA_VISIBLE_DEVICES</code> normalization automatically — no manual <code>export CUDA_VISIBLE_DEVICES=0,1</code> needed in the PBS job script.</p>
+<hr />
+<h2 id="phase-3-kubernetes">Phase 3 — Kubernetes</h2>
+<h3 id="31-k8straining-jobyaml">3.1 <code>k8s/training-job.yaml</code></h3>
+<p><strong>Path:</strong> <code>/home/ray/Dev/COMP4651-Project/k8s/training-job.yaml</code></p>
+<p>Kubernetes Job for GPU node pools on commercial cloud clusters:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">batch/v1</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Job</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="nt">metadata</span><span class="p">:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vlash-train</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="nt">spec</span><span class="p">:</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nt">template</span><span class="p">:</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">    </span><span class="nt">spec</span><span class="p">:</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">      </span><span class="nt">restartPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OnFailure</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">      </span><span class="nt">containers</span><span class="p">:</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vlash:latest</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="w">          </span><span class="nt">args</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;examples/train/pi05/cloud.yaml&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="w">          </span><span class="nt">env</span><span class="p">:</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HF_TOKEN</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="w">              </span><span class="nt">valueFrom</span><span class="p">:</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="w">                </span><span class="nt">secretKeyRef</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="nv">hf-secret</span><span class="p p-Indicator">,</span><span class="nt"> key</span><span class="p">:</span><span class="w"> </span><span class="nv">token</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HF_HOME</span>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="w">              </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/hf_cache</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NUM_GPUS</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="w">              </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;4&quot;</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a><span class="w">          </span><span class="nt">resources</span><span class="p">:</span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="w">            </span><span class="nt">limits</span><span class="p">:</span>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="w">              </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a><span class="w">          </span><span class="nt">volumeMounts</span><span class="p">:</span>
+<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hf-cache</span>
+<a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a><span class="w">              </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/hf_cache</span>
+<a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a><span class="w">            </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">outputs</span>
+<a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a><span class="w">              </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/workspace/outputs</span>
+<a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a><span class="w">      </span><span class="nt">volumes</span><span class="p">:</span>
+<a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hf-cache</span>
+<a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a><span class="w">          </span><span class="nt">persistentVolumeClaim</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">claimName</span><span class="p">:</span><span class="w"> </span><span class="nv">hf-cache-pvc</span><span class="p p-Indicator">}</span>
+<a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">outputs</span>
+<a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a><span class="w">          </span><span class="nt">persistentVolumeClaim</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">claimName</span><span class="p">:</span><span class="w"> </span><span class="nv">outputs-pvc</span><span class="p p-Indicator">}</span>
+</code></pre></div></p>
+<hr />
+<h2 id="phase-4-documentation">Phase 4 — Documentation</h2>
+<h3 id="41-update-readmemd">4.1 Update <code>README.md</code></h3>
+<p>Add sections:
+- <strong>Group Members</strong> table (name, student ID, email, contribution) — fill when info available
+- <strong>Cloud Deployment</strong> quickstart with <code>docker-compose up</code>
+- <strong>Multi-GPU Training</strong> instructions
+- <strong>HPC / Singularity</strong> one-liner for NSCC
+- <strong>First-run note:</strong> DeepSpeed and bitsandbytes compile CUDA ops on first training run (~1-3 min overhead — not a crash)
+- YouTube video link placeholder</p>
+<h3 id="42-reportreportqmd">4.2 <code>report/report.qmd</code></h3>
+<p><strong>Path:</strong> <code>/home/ray/Dev/COMP4651-Project/report/report.qmd</code></p>
+<p>Structure (≤5 pages, single column, 10pt font):
+1. <strong>Introduction</strong> (~0.5p): Problem — HPC-only VLA fine-tuning, missing DDP code; goal — cloud-portable distributed training
+2. <strong>Background</strong> (~0.5p): VLASH, pi0.5 architecture, DeepSpeed ZeRO-2 vs DDP
+3. <strong>System Design</strong> (~1.5p): Architecture (Docker → Accelerate → DeepSpeed ZeRO-2 → VLASH training loop), LoRA config, dataset pipeline, container portability design
+4. <strong>Evaluation</strong> (~2p): Inference latency benchmark (FPS, latency percentiles from container), training observations, container image size and startup overhead
+5. <strong>Conclusion</strong> (~0.5p): Reproducibility, cloud/HPC portability, future work (QLoRA, multi-node K8s)</p>
+<p>Quarto frontmatter:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nn">---</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="nt">title</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Distributed</span><span class="nv"> </span><span class="s">VLA</span><span class="nv"> </span><span class="s">Fine-Tuning</span><span class="nv"> </span><span class="s">on</span><span class="nv"> </span><span class="s">the</span><span class="nv"> </span><span class="s">Cloud:</span><span class="nv"> </span><span class="s">Dockerizing</span><span class="nv"> </span><span class="s">VLASH</span><span class="nv"> </span><span class="s">with</span><span class="nv"> </span><span class="s">DeepSpeed&quot;</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="nt">format</span><span class="p">:</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">pdf</span><span class="p">:</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="nt">fontsize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10pt</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="nt">geometry</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">margin=1in</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="nn">---</span>
+</code></pre></div></p>
+<hr />
+<h2 id="phase-5-verification">Phase 5 — Verification</h2>
+<ol>
+<li><code>docker build -t vlash:latest .</code> — must complete without GPU</li>
+<li><code>docker run --rm --gpus all vlash:latest pixi run python -c "import torch; print(torch.cuda.is_available())"</code> → must print <code>True</code></li>
+<li><code>docker run --rm --gpus device=0 -e HF_TOKEN=... vlash:latest examples/train/pi05/cloud.yaml --steps=10</code> — smoke test</li>
+<li><code>NUM_GPUS=2 docker-compose up</code> — verify NCCL initializes across 2 GPUs</li>
+<li><code>singularity build vlash.sif singularity.def</code> — HPC image build</li>
+<li>Run inference benchmark inside container → capture FPS/latency for report</li>
+</ol>
+<hr />
+<h2 id="file-change-summary">File Change Summary</h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pyproject.toml</code></td>
+<td>Update — remove <code>flask</code>, move <code>reachy2_sdk</code> to <code>[robot]</code> optional extra</td>
+</tr>
+<tr>
+<td><code>examples/train/pi05/cloud.yaml</code></td>
+<td>Create — portable cloud training config</td>
+</tr>
+<tr>
+<td><code>Dockerfile</code></td>
+<td>Create</td>
+</tr>
+<tr>
+<td><code>docker-entrypoint.sh</code></td>
+<td>Create</td>
+</tr>
+<tr>
+<td><code>.dockerignore</code></td>
+<td>Create</td>
+</tr>
+<tr>
+<td><code>docker-compose.yaml</code></td>
+<td>Create</td>
+</tr>
+<tr>
+<td><code>deepspeed_config.yaml</code></td>
+<td>Minor update — add explanatory comments</td>
+</tr>
+<tr>
+<td><code>singularity.def</code></td>
+<td>Create</td>
+</tr>
+<tr>
+<td><code>k8s/training-job.yaml</code></td>
+<td>Create</td>
+</tr>
+<tr>
+<td><code>README.md</code></td>
+<td>Update — group info, Docker/Singularity quickstart</td>
+</tr>
+<tr>
+<td><code>report/report.qmd</code></td>
+<td>Create</td>
+</tr>
+<tr>
+<td><code>CHANGELOG.md</code></td>
+<td>Create (required by AGENTS.md)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="phase-6-docker-build-testing-verification">Phase 6 — Docker Build &amp; Testing Verification</h2>
+<p>Before submitting, build and verify the Docker image works end-to-end.</p>
+<h3 id="docker-build-testing-checklist">Docker Build &amp; Testing Checklist</h3>
+<h4 id="phase-1-build-the-image">Phase 1: Build the Image</h4>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>vlash:latest<span class="w"> </span>.
+</code></pre></div>
+- [ ] Build completes without errors
+- [ ] Expected time: 10–30 min (network-dependent)
+- [ ] Check: network connectivity, &gt;50GB disk space, pixi.lock validity</p>
+<h4 id="phase-2-test-python-imports-no-gpu-needed">Phase 2: Test Python Imports (No GPU Needed)</h4>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># Test VLASH import</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>vlash:latest<span class="w"> </span>pixi<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import vlash; print(&#39;VLASH OK&#39;)&quot;</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="c1"># Test PyTorch</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>vlash:latest<span class="w"> </span>pixi<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import torch; print(f&#39;PyTorch {torch.__version__}&#39;)&quot;</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="c1"># Test DeepSpeed</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>vlash:latest<span class="w"> </span>pixi<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import deepspeed; print(&#39;DeepSpeed OK&#39;)&quot;</span>
+</code></pre></div>
+- [ ] All three commands succeed
+- [ ] Troubleshoot: ImportError → <code>pixi update</code> locally and rebuild</p>
+<h4 id="phase-3-interactive-debugging-shell">Phase 3: Interactive Debugging Shell</h4>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-it<span class="w"> </span>--entrypoint<span class="w"> </span>bash<span class="w"> </span>vlash:latest
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="c1"># Inside container:</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>which<span class="w"> </span>python
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>pixi<span class="w"> </span>info
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import torch; print(torch.__version__)&quot;</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="nb">exit</span>
+</code></pre></div>
+- [ ] Bash shell opens successfully
+- [ ] pixi environment is activated
+- [ ] PyTorch version displays correctly</p>
+<h4 id="phase-4-gpu-access-test-requires-gpu-hardware">Phase 4: GPU Access Test (Requires GPU Hardware)</h4>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span>vlash:latest<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span>pixi<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import torch; print(f&#39;CUDA: {torch.cuda.is_available()}, Devices: {torch.cuda.device_count()}&#39;)&quot;</span>
+</code></pre></div>
+- [ ] Output shows <code>CUDA: True</code>
+- [ ] Device count &gt; 0
+- [ ] Troubleshoot: CUDA unavailable → install <a href="https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html">NVIDIA Container Runtime</a></p>
+<h4 id="phase-5-smoke-test-training-requires-gpu-hf-token-dataset">Phase 5: Smoke Test Training (Requires GPU + HF Token + Dataset)</h4>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">HF_TOKEN</span><span class="o">=</span>&lt;your_hf_token&gt;
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">DATASET_REPO_ID</span><span class="o">=</span>lerobot/pusht_sim<span class="w">  </span><span class="c1"># or your test dataset</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>--gpus<span class="w"> </span>all<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">HF_TOKEN</span><span class="o">=</span><span class="nv">$HF_TOKEN</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">DATASET_REPO_ID</span><span class="o">=</span><span class="nv">$DATASET_REPO_ID</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">NUM_GPUS</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">  </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/outputs:/workspace/outputs<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">  </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>/hf_cache:/hf_cache<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">  </span>-e<span class="w"> </span><span class="nv">HF_HOME</span><span class="o">=</span>/hf_cache<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">  </span>vlash:latest<span class="w"> </span>examples/train/pi05/cloud.yaml<span class="w"> </span>--steps<span class="o">=</span><span class="m">10</span>
+</code></pre></div>
+- [ ] Training starts without errors
+- [ ] HuggingFace model downloads successfully (may take 2–5 min)
+- [ ] Training runs for 10 steps
+- [ ] Checkpoint saved to <code>./outputs/pi05_cloud/checkpoints/</code>
+- [ ] CUDA compilation warning (first run only): expected, takes 1–3 min</p>
+<h3 id="troubleshooting-reference">Troubleshooting Reference</h3>
+<table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>Cause</th>
+<th>Solution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>docker build</code> fails</td>
+<td>Network/disk space</td>
+<td>Check internet, ensure &gt;50GB free, retry</td>
+</tr>
+<tr>
+<td><code>ImportError: No module</code></td>
+<td>pixi.lock incomplete</td>
+<td>Run <code>pixi update</code> locally, rebuild</td>
+</tr>
+<tr>
+<td><code>CUDA not available</code></td>
+<td>NVIDIA Container Runtime missing</td>
+<td>Install nvidia-container-toolkit</td>
+</tr>
+<tr>
+<td><code>HF auth error</code></td>
+<td>Invalid/missing token</td>
+<td>Verify HF_TOKEN is valid and HF credentials are current</td>
+</tr>
+<tr>
+<td><code>Dataset not found</code></td>
+<td>Invalid dataset ID</td>
+<td>Verify DATASET_REPO_ID is public or you have access</td>
+</tr>
+<tr>
+<td><code>OOM error</code></td>
+<td>GPU memory too small</td>
+<td>Reduce batch size or use fewer GPUs</td>
+</tr>
+<tr>
+<td>NCCL/DeepSpeed error</td>
+<td>Config or driver mismatch</td>
+<td>Check deepspeed_config.yaml, verify GPU driver version</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="remaining-open-items">Remaining Open Items</h2>
+<ul>
+<li><strong>Group member info</strong> — names, student IDs, and emails needed for README. Provide when ready.</li>
+<li><strong>Evaluation metrics</strong> — run inference/training benchmarks and fill in report.qmd evaluation tables (Phase 5 test provides timing data)</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "content.code.copy", "content.code.annotate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

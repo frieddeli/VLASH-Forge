@@ -1,0 +1,30 @@
+Course Project due on May 17 
+Due May 17 by 11:59pm Points 25
+Meta Info
+The course consists of a term-long, open-ended project, where 2-4 students team up working as a group. Please refer to this Google SheetLinks to an external site. for previous group matching info. For those who need to find or form a group for the course project, please post your call-for-group-mates in this discussion thread. Note that the workload of a course project should be proportional to the number of people in the group (i.e., we expect a higher workload if your group have more teammates).
+
+Due date: 17 May
+
+Project Topic
+The topic of the project is mainly determined by you, but must be approved by the instructor (it should be related to cloud computing). The project can be tech or research related. Example topics include but not limited to:
+
+Reimplementing an AWS serverless application. The applications include but are not limited to web application, image recognition, mobile backend, file processing, stream processing, IoT backend, Chatbot, etc. The students are expected to implement a partial or a complete set of functionalities of a particular application with the AWS components replaced with open-source alternatives, e.g., Apache Kafka substituted for Kinesis Stream, PostgreSQL for DynamoDB, OpenFaaS for AWS Lambda, Redis for S3, TensorFlow for Amazon Rekognition, Nginx for API Gateway, etc. The deliverable should be directly deployable to a Kubernetes cluster, such as a set of Docker images.
+Using Spark, Hadoop or any other distributed frameworks to analyze a dataset, public or self-collected, and drawing some insights from it. A few public datasets you can use: AWS Public Datasets, SF OpenData, Google cluster workload traces, Alibaba cluster workload traces, etc.
+Reimplementing a distributed system (e.g., Hadoop MapReduce, Spark, and Flink) proposed in a recent research paper, and reproducing the experimental results.
+Reimplementing a distributed ML/DL platform or application, such as Amazon SageMaker., Ray, Google Vertex AI. The following distributed ML-related topics may also be helpful: 1) designing large-scale ML training pipelines (e.g., training XGBoost on a large dataset) using Spark; 2) reimplementing distributed training frameworks (e.g., Megatron-LM DeepSpeed) on Kubernetes; 3) Reimplementing or optimizing serverless ML/DL/LLM inference frameworks; 4) Efficient training/inference on Spot Instances;
+Agentic LLM inference or learning on the cloud, such as deploying AI agents (e.g., OpenClawLinks to an external site., OpenHandsLinks to an external site.) on the cloud and evaluate them on standard benchmarks (e.g., Terminal-BenchLinks to an external site., SWE-BenchLinks to an external site., etc.)
+Any other cloud-related topic…
+Submission Requirements
+Please accept this GitHub classroom invitation linkLinks to an external site. to create the project repository on GitHub. The first student to receive the invitation link is responsible for creating a new team, with a simple but representative name that does not contain special characters. Then the remaining members of the team join the same team.
+
+Each student also needs to be manually added to a group on Canvas (through "People", then "Groups", then select a course project group).
+
+The deliverables of the project should include:
+
+A project report (single column, 10 pt fonts,  <= 5 pages, excluding the references). The report accounts for 20 points, and must be in PDF format. Upload your report and source code to the designated GitHub repository.
+A 5-min presentation video. Not all members of the group are required to show up. Upload the video to YouTube/Onedrive, and include the link to the video on GitHub. The presentation accounts for 5 points.
+A README file needs to contain the personal information of your group members (student name, student id, and email address). And the contribution of each member should be included as well.
+
+Due Date: 17 May
+
+For questions, please email the TAs and/or the instructor.
