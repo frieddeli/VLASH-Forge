@@ -36,8 +36,8 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
 ## Group Members
 
 | Name | Student ID | Email | Contribution |
-|------|-----------|-------|--------------|
-| TBD  | TBD       | TBD   | TBD          |
+| ---- | ---------- | ----- | ------------ |
+| TBD  | TBD        | TBD   | TBD          |
 
 ---
 
@@ -171,6 +171,7 @@ export SCRATCH=$HOME/vlash-scratch && mkdir -p $SCRATCH
 ```
 
 Inside `/scratch` the layout is always:
+
 ```
 $SCRATCH/
   .cache/huggingface/   ← base model weights (~10 GB, downloaded once)
@@ -201,11 +202,13 @@ TRAIN_BACKEND=fsdp ./scripts/train.sh examples/train/pi05/cloud_full.yaml
 **Prerequisites:** Docker with [NVIDIA Container Runtime](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed, or Singularity with `vlash.sif` present in the working directory.
 
 Build the Docker image if you haven't already (no GPU needed for build):
+
 ```bash
 docker build -t vlash:latest .
 ```
 
 Pull the Singularity image on HPC:
+
 ```bash
 singularity pull vlash.sif docker://frieddeli/vlash-forge:latest
 # For faster HPC transfer, build locally and copy:
@@ -252,10 +255,10 @@ kubectl logs -f job/vlash-train
 
 Two backends are available, selected via the `TRAIN_BACKEND` environment variable:
 
-| `TRAIN_BACKEND` | Method | When to use |
-|----------------|--------|-------------|
-| `deepspeed` (default) | DeepSpeed ZeRO-2 | LoRA fine-tuning — shards optimiser states and gradients, keeps params replicated |
-| `fsdp` | PyTorch FSDP FULL_SHARD | Full fine-tuning — shards params + optimiser states + gradients (ZeRO-3 equivalent) |
+| `TRAIN_BACKEND`       | Method                  | When to use                                                                          |
+| ----------------------- | ----------------------- | ------------------------------------------------------------------------------------ |
+| `deepspeed` (default) | DeepSpeed ZeRO-2        | LoRA fine-tuning — shards optimiser states and gradients, keeps params replicated   |
+| `fsdp`                | PyTorch FSDP FULL_SHARD | Full fine-tuning — shards params + optimiser states + gradients (ZeRO-3 equivalent) |
 
 Use `deepspeed` (the default) for LoRA. Switch to `fsdp` only when running `lora.enable: false`
 in your config — full fine-tuning needs 40 GB+ VRAM per GPU and the `cloud_full.yaml` config.
@@ -267,12 +270,12 @@ currently supported.
 
 ## GPU Requirements
 
-| Model | Mode | Min VRAM per GPU | Recommended hardware |
-|-------|------|-----------------|----------------------|
-| π₀.₅ (1.3B) | LoRA (`deepspeed`) | 12 GB | RTX 3090 / A10G / T4 |
-| π₀.₅ (1.3B) | Full (`fsdp`) | 40 GB | 4×A100 40GB |
-| π₀ (3B) | LoRA (`deepspeed`) | 24 GB | RTX 4090 / A100 40GB |
-| π₀ (3B) | Full (`fsdp`) | 80 GB | 4×A100 80GB / 4×H100 |
+| Model          | Mode                 | Min VRAM per GPU | Recommended hardware   |
+| -------------- | -------------------- | ---------------- | ---------------------- |
+| π₀.₅ (1.3B) | LoRA (`deepspeed`) | 12 GB            | RTX 3090 / A10G / T4   |
+| π₀.₅ (1.3B) | Full (`fsdp`)      | 40 GB            | 4×A100 40GB           |
+| π₀ (3B)      | LoRA (`deepspeed`) | 24 GB            | RTX 4090 / A100 40GB   |
+| π₀ (3B)      | Full (`fsdp`)      | 80 GB            | 4×A100 80GB / 4×H100 |
 
 AWS instance guide: `g5.xlarge` (1×A10G 24GB) for LoRA; `g5.12xlarge` (4×A10G) for multi-GPU LoRA;
 `p4d.24xlarge` (8×A100 40GB) or `p4de.24xlarge` (8×A100 80GB) for full fine-tuning.
@@ -306,12 +309,14 @@ pixi run python -c "import vlash; print('OK')"
 ### Quick examples
 
 **LoRA fine-tuning (single GPU):**
+
 ```bash
 export DATASET_REPO_ID=your-org/your-dataset
 vlash train examples/train/pi05/cloud.yaml
 ```
 
 **Distributed training on 4 GPUs:**
+
 ```bash
 export DATASET_REPO_ID=your-org/your-dataset
 accelerate launch \
@@ -321,11 +326,13 @@ accelerate launch \
 ```
 
 **Async inference on a robot:**
+
 ```bash
 vlash run examples/inference/async.yaml
 ```
 
 **Async inference with 2× action speedup:**
+
 ```bash
 vlash run examples/inference/async.yaml --action_quant_ratio=2
 ```
@@ -334,12 +341,12 @@ vlash run examples/inference/async.yaml --action_quant_ratio=2
 
 ## TODO
 
-- [x] LoRA fine-tuning for π₀.₅, π₀ under 12 GB GPU memory
-- [x] Full fine-tuning via FSDP for π₀.₅, π₀
-- [x] Efficient fine-tuning with shared observation encoding
-- [x] DeepSpeed ZeRO-2 distributed training
-- [x] Docker and Singularity containers for cloud/HPC deployment
-- [x] SLURM job script for HPC clusters
+- [X] LoRA fine-tuning for π₀.₅, π₀ under 12 GB GPU memory
+- [X] Full fine-tuning via FSDP for π₀.₅, π₀
+- [X] Efficient fine-tuning with shared observation encoding
+- [X] DeepSpeed ZeRO-2 distributed training
+- [X] Docker and Singularity containers for cloud/HPC deployment
+- [X] SLURM job script for HPC clusters
 - [ ] QLoRA fine-tuning for π₀.₅, π₀ under 8 GB GPU memory
 - [ ] Multi-node training support
 

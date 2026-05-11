@@ -34,11 +34,10 @@ nav:
     - First-time Setup: setup.md
     - Storage Setup: storage.md
     - Running Training: running.md
-  - Training:
+  - Training Reference:
     - Backends (DeepSpeed / FSDP): backends.md
     - GPU Requirements: gpu.md
     - Config Reference: config.md
-  - Reference:
     - Environment Variables: env-vars.md
 
 extra_css:
