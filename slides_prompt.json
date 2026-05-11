@@ -1,0 +1,240 @@
+{
+  "presentation": {
+    "title": "Distributed VLA Fine-Tuning on the Cloud: Dockerizing VLASH with DeepSpeed",
+    "subtitle": "COMP4651 — Cloud Computing and Big Data Systems — HKUST",
+    "authors": ["Shao Yingzhan", "Dana Yak"],
+    "duration_minutes": 5,
+    "slide_count": 9
+  },
+
+  "style": {
+    "theme": "professional_dark",
+    "primary_color": "#1A1A2E",
+    "accent_color": "#E94560",
+    "secondary_color": "#16213E",
+    "text_color": "#EAEAEA",
+    "font_heading": "Inter",
+    "font_body": "Inter",
+    "logo": "assets/logo.png",
+    "logo_position": "bottom_right",
+    "layout_style": "minimal_clean",
+    "icon_style": "flat"
+  },
+
+  "slides": [
+    {
+      "number": 1,
+      "type": "title",
+      "layout": "centered_with_logo",
+      "title": "VLASH Forge",
+      "subtitle": "Portable Distributed VLA Fine-Tuning on Cloud and HPC",
+      "body": "Distributed VLA Fine-Tuning on the Cloud: Dockerizing VLASH with DeepSpeed",
+      "meta": "COMP4651 — Cloud Computing and Big Data Systems — HKUST",
+      "authors": "Shao Yingzhan · Dana Yak",
+      "image": "assets/logo.png",
+      "image_position": "center",
+      "image_size": "medium",
+      "speaker_note": "We built a portable, containerised distributed training platform for fine-tuning large robot learning models on cloud and HPC — deployable to Kubernetes, AWS, GCP, and HPC clusters from a single Docker image and one command."
+    },
+    {
+      "number": 2,
+      "type": "problem",
+      "layout": "two_column",
+      "title": "The Cloud Computing Problem",
+      "left_column": {
+        "heading": "Fine-Tuning at Scale Requires Cloud Infrastructure",
+        "bullets": [
+          "1.3B–3B parameter models — 12–40 GB GPU memory per device",
+          "Hours of distributed training across multiple GPUs",
+          "Reproducible environments across cloud VMs and HPC nodes",
+          "VLASH validated on 4×H100 — training code never released"
+        ]
+      },
+      "right_column": {
+        "heading": "The Gap",
+        "callout": "There was no open, portable distributed training infrastructure for VLASH. Anyone wanting to fine-tune had to rebuild the entire stack from scratch.",
+        "stat": "0 lines of open distributed training code from the original authors"
+      },
+      "image": "assets/view_3.jpg",
+      "image_caption": "Target deployment: Piper arm + Jetson AGX Orin",
+      "image_position": "bottom_right",
+      "speaker_note": "Fine-tuning a 1.3B parameter model is a cloud computing problem — it requires 12–40 GB GPU memory, hours of distributed training, and a reproducible software stack. The VLASH framework had results but no open infrastructure."
+    },
+    {
+      "number": 3,
+      "type": "contribution",
+      "layout": "three_contribution",
+      "title": "What We Built",
+      "intro": "We built the missing cloud infrastructure — three concrete contributions:",
+      "contributions": [
+        {
+          "number": "01",
+          "heading": "Distributed Training",
+          "body": "DeepSpeed ZeRO-2 and FSDP via HuggingFace Accelerate — replacing the unpublished DDP setup from the original VLASH paper",
+          "icon": "distributed"
+        },
+        {
+          "number": "02",
+          "heading": "Portable Containers",
+          "body": "Docker + Singularity with pixi lockfile — bit-identical environments across cloud VMs, HPC nodes, and Kubernetes pods",
+          "icon": "container"
+        },
+        {
+          "number": "03",
+          "heading": "Kubernetes Deployment",
+          "body": "Complete Job manifest submittable with kubectl apply — works on EKS, GKE, and AKS without modification",
+          "icon": "kubernetes"
+        }
+      ],
+      "callout": "One command: ./scripts/train.sh — detects environment, launches automatically",
+      "speaker_note": "Three contributions: DeepSpeed distributed training, portable containers with lockfile, Kubernetes Job manifest. One command runs the whole thing."
+    },
+    {
+      "number": 4,
+      "type": "architecture",
+      "layout": "two_diagram",
+      "title": "System Architecture",
+      "left_diagram": {
+        "caption": "Infrastructure Deployment",
+        "nodes": ["Docker Hub", "Job Scheduler", "vlash-forge Container", "HuggingFace Hub", "W&B"],
+        "edges": [
+          {"from": "Docker Hub", "to": "Job Scheduler", "label": "pull image"},
+          {"from": "Job Scheduler", "to": "vlash-forge Container", "label": "allocate GPU node"},
+          {"from": "HuggingFace Hub", "to": "vlash-forge Container", "label": "model + dataset"},
+          {"from": "vlash-forge Container", "to": "HuggingFace Hub", "label": "checkpoint"},
+          {"from": "vlash-forge Container", "to": "W&B", "label": "metrics"}
+        ]
+      },
+      "right_diagram": {
+        "caption": "Container Training Pipeline",
+        "nodes": ["Base Model", "Dataset", "Distributed Training", "DeepSpeed ZeRO-2 / FSDP", "Trained Checkpoint"],
+        "edges": [
+          {"from": "Base Model", "to": "Distributed Training", "label": "initialise"},
+          {"from": "Dataset", "to": "Distributed Training", "label": "feed"},
+          {"from": "Distributed Training", "to": "DeepSpeed ZeRO-2 / FSDP", "label": "backend"},
+          {"from": "DeepSpeed ZeRO-2 / FSDP", "to": "Trained Checkpoint", "label": "save"}
+        ]
+      },
+      "callout": "Nothing baked into the image — all credentials and config injected at runtime via environment variables",
+      "speaker_note": "Left: infrastructure flow — image pulled from Docker Hub, scheduler allocates GPU, HF Hub provides data, W&B streams metrics. Right: training pipeline inside the container."
+    },
+    {
+      "number": 5,
+      "type": "technical",
+      "layout": "comparison",
+      "title": "DeepSpeed ZeRO-2: The Core Contribution",
+      "comparison": {
+        "left": {
+          "label": "Vanilla DDP",
+          "color": "#E94560",
+          "items": [
+            "Full model replicated on every GPU",
+            "Parameters: 2.6 GB",
+            "Gradients: 2.6 GB",
+            "Optimizer states: 10.4 GB",
+            "Total: ~15.6 GB per GPU"
+          ]
+        },
+        "right": {
+          "label": "DeepSpeed ZeRO-2 (4 GPUs)",
+          "color": "#00B4D8",
+          "items": [
+            "Parameters replicated",
+            "Parameters: 2.6 GB",
+            "Gradients: 0.65 GB (sharded ÷4)",
+            "Optimizer states: 2.6 GB (sharded ÷4)",
+            "Total: ~5.85 GB per GPU"
+          ]
+        }
+      },
+      "stat": { "value": "62%", "label": "memory reduction", "color": "#00B4D8" },
+      "callout": "Enables batch_size=16 on 40GB A100s. FSDP (FULL_SHARD) available for full fine-tuning via TRAIN_BACKEND=fsdp",
+      "speaker_note": "ZeRO-2 shards optimizer states and gradients, 62% memory reduction. FSDP available for full fine-tuning."
+    },
+    {
+      "number": 6,
+      "type": "kubernetes",
+      "layout": "split_code",
+      "title": "Kubernetes Deployment",
+      "subtitle": "Deliverable: directly deployable to a Kubernetes cluster",
+      "left": {
+        "bullets": [
+          "Complete Job manifest: k8s/training-job.yaml",
+          "GPU resource requests: nvidia.com/gpu: 4",
+          "PersistentVolumeClaims for model cache and outputs",
+          "Kubernetes Secret for HF_TOKEN",
+          "Works on AWS EKS, GCP GKE, Azure AKS — same manifest"
+        ],
+        "callout": "kubectl apply -f k8s/training-job.yaml"
+      },
+      "right": {
+        "code_snippet": "resources:\n  limits:\n    nvidia.com/gpu: 4\nvolumeMounts:\n  - name: hf-cache\n    mountPath: /scratch/.cache\n  - name: outputs\n    mountPath: /scratch/outputs\nenv:\n  - name: HF_TOKEN\n    valueFrom:\n      secretKeyRef:\n        name: hf-secret",
+        "language": "yaml"
+      },
+      "speaker_note": "Complete Kubernetes Job manifest — GPU requests, PVCs for storage, Secret for credentials. One kubectl apply submits the full training job on any cloud provider."
+    },
+    {
+      "number": 7,
+      "type": "technical",
+      "layout": "icon_bullets",
+      "title": "Storage Abstraction",
+      "intro": "The container always reads/writes to /scratch. The host bind-mounts whatever storage it has.",
+      "environments": [
+        { "label": "NSCC ASPIRE / HPC", "storage": "Lustre/GPFS parallel filesystem", "mount": "-B $SCRATCH:/scratch" },
+        { "label": "AWS", "storage": "EBS volume", "mount": "-v $SCRATCH:/scratch" },
+        { "label": "GCP", "storage": "Persistent Disk or GCS FUSE", "mount": "-v $SCRATCH:/scratch" },
+        { "label": "Kubernetes", "storage": "PersistentVolumeClaim", "mount": "volumeMount at /scratch" }
+      ],
+      "callout": "One environment variable — SCRATCH — is all that changes between environments",
+      "speaker_note": "Storage abstraction: /scratch is always the interface. What's behind it — Lustre, EBS, GCS, PVC — is the host's concern, not the container's."
+    },
+    {
+      "number": 8,
+      "type": "results",
+      "layout": "stats_with_image",
+      "title": "Results",
+      "context": "Training: NSCC ASPIRE 2A (4×A100 40GB) — academic HPC, no commercial cloud budget allocated. Inference: Jetson AGX Orin at 30Hz. 50 demonstrations, ~4 hours training.",
+      "stats": [
+        { "value": "65%", "label": "Task success rate (async)", "color": "#00B4D8" },
+        { "value": "5%", "label": "Synchronous baseline", "color": "#E94560" },
+        { "value": "29.5×", "label": "Latency reduction (184ms vs 5444ms)", "color": "#00B4D8" },
+        { "value": "12 GB", "label": "VRAM — LoRA on single A100", "color": "#90E0EF" }
+      ],
+      "image": "assets/piper_arm_demo.png",
+      "image_caption": "π₀.₅ fine-tuned on NSCC ASPIRE, deployed on Jetson AGX Orin",
+      "image_position": "right",
+      "demo_note": "See demo video — continuous 30Hz control, no chunk-boundary pauses",
+      "speaker_note": "65% SR async vs 5% sync. 29.5x latency reduction. LoRA fits in 12GB per GPU confirming ZeRO-2 enables batch_size=16 across 4 A100s."
+    },
+    {
+      "number": 9,
+      "type": "conclusion",
+      "layout": "summary_with_links",
+      "title": "Summary",
+      "cloud_contributions": [
+        "DeepSpeed ZeRO-2 distributed training — open implementation of the missing VLASH infrastructure",
+        "Docker + Singularity containers with pixi lockfile — reproducible environments across cloud and HPC",
+        "Kubernetes Job manifest — deployable on EKS, GKE, AKS with kubectl apply",
+        "Unified /scratch storage abstraction — one env var changes between NSCC, AWS, GCP, and K8s"
+      ],
+      "validation": "End-to-end: 65% task SR, 29.5× latency reduction on Jetson AGX Orin",
+      "future_work": ["Multi-node training via SLURM srun / K8s operator", "QLoRA for <8 GB consumer GPUs"],
+      "links": [
+        { "label": "GitHub", "url": "github.com/frieddeli/vlash-forge" },
+        { "label": "Docker Hub", "url": "hub.docker.com/r/frieddeli/vlash-forge" },
+        { "label": "Docs", "url": "frieddeli.github.io/vlash-forge" }
+      ],
+      "closing": "Thank you — questions welcome.",
+      "speaker_note": "Four cloud contributions: distributed training, portable containers, K8s deployment, storage abstraction. Code, image, and docs all public."
+    }
+  ],
+
+  "generation_instructions": {
+    "tool_notes": "Paste this JSON into Kimi Slides, Gamma, or Beautiful.ai. Each slide type maps to a layout template. Use speaker_note fields for presenter notes.",
+    "image_instructions": "Upload before generating: logo.png (slide 1), view_3.jpg (slide 2), piper_arm_demo.png (slide 8). Video: assets/piper_demo.mp4 for slide 8 overlay.",
+    "color_instructions": "Background: #1A1A2E (dark navy). Accent: #E94560 (red). Highlight: #00B4D8 (cyan). Text: #EAEAEA. Stats in accent/highlight colors.",
+    "font_instructions": "Inter throughout. Headings: 28–32pt bold. Body: 14–16pt. Stats: 48–56pt bold in accent color.",
+    "slide_6_note": "Slide 6 is the Kubernetes slide — make it visually prominent, use the YAML code snippet on the right half with syntax highlighting.",
+    "animation": "Subtle fade-in per bullet. No flying animations. Slide transition: simple fade."
+  }
+}
