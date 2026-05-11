@@ -87,16 +87,113 @@ format below. Add the entry **before committing** any changes.
 
 Keep entries concise — one bullet per file changed is sufficient.
 
-## Below are NSCC specific, use only as reference
+## NSCC ASPIRE HPC Runbook
 
-## Scratch storage
+Complete steps to pull the project and run training on NSCC ASPIRE 2A.
 
-Large outputs (checkpoints, datasets, logs) live on the scratch filesystem, **not** in the repo directory:
+### 1. First-time setup (login node)
+
+```bash
+# Set your scratch path
+export SCRATCH=/scratch/users/ntu/<your-id>
+mkdir -p $SCRATCH/outputs $SCRATCH/logs
+
+# Clone the repo
+cd $SCRATCH
+git clone https://github.com/frieddeli/vlash-forge.git
+cd vlash-forge
+
+# Pull the Singularity image (~10 GB, takes 5–10 min)
+singularity pull $SCRATCH/vlash-forge.sif docker://frieddeli/vlash-forge:latest
+```
+
+### 2. Set environment variables
+
+```bash
+export SCRATCH=/scratch/users/ntu/<your-id>
+export HF_TOKEN=hf_xxx                           # HF token with read access to lerobot/pi05_base
+export DATASET_REPO_ID=your-org/your-dataset     # HF dataset repo ID
+```
+
+### 3. Smoke test (login node, no GPU)
+
+Confirms dataset loads and model downloads before burning quota:
+
+```bash
+singularity run \
+  -B ${SCRATCH}:/scratch \
+  --env HF_TOKEN="${HF_TOKEN}" \
+  --env HF_HOME="/scratch/.cache/huggingface" \
+  --env DATASET_REPO_ID="${DATASET_REPO_ID}" \
+  ${SCRATCH}/vlash-forge.sif \
+  examples/train/pi05/cloud.yaml steps=100 save_freq=100 log_freq=10
+```
+
+### 4. Full training job (PBS)
+
+Edit `scripts/train_pbs.pbs` to set your SCRATCH, HF_TOKEN, and DATASET_REPO_ID at the top, then:
+
+```bash
+mkdir -p logs
+qsub scripts/train_pbs.pbs                    # async + LoRA (default cloud.yaml)
+
+# Monitor
+qstat -u $USER
+tail -f logs/<job-id>.o
+```
+
+Checkpoint lands at: `$SCRATCH/outputs/pi05_cloud/checkpoints/last/`
+
+### 5. Sync baseline job (for comparison)
+
+```bash
+cp examples/train/pi05/cloud.yaml examples/train/pi05/cloud_sync.yaml
+# Edit cloud_sync.yaml: max_delay_steps: 0, shared_observation: false,
+#   output_dir: /scratch/outputs/pi05_sync, job_name: pi05_sync
+
+qsub scripts/train_pbs.pbs examples/train/pi05/cloud_sync.yaml
+```
+
+### 6. Scaling experiment (1 / 2 / 4 GPU — measures ZeRO-2 throughput)
+
+Run 500 steps at each GPU count, compare `update_s` in logs:
+
+```bash
+sed 's/ngpus=4/ngpus=1/' scripts/train_pbs.pbs | \
+  PBS_EXTRA="output_dir=/scratch/outputs/scale_1gpu job_name=scale_1gpu steps=500" qsub
+
+sed 's/ngpus=4/ngpus=2/' scripts/train_pbs.pbs | \
+  PBS_EXTRA="output_dir=/scratch/outputs/scale_2gpu job_name=scale_2gpu steps=500" qsub
+
+qsub scripts/train_pbs.pbs \
+  examples/train/pi05/cloud.yaml \
+  output_dir=/scratch/outputs/scale_4gpu job_name=scale_4gpu steps=500
+```
+
+Throughput = effective_batch_size / update_s. Near-linear scaling validates ZeRO-2.
+
+### 7. Push checkpoint to HF Hub after training
+
+```bash
+huggingface-cli upload your-org/vlash-models \
+  $SCRATCH/outputs/pi05_cloud/checkpoints/last/pretrained_model/ \
+  --repo-type model
+```
+
+Or set `push_to_hub: true` + `repo_id: your-org/vlash-models` in `cloud.yaml` before submitting.
+
+### Scratch storage layout
 
 ```
-/scratch/users/ntu/m230060/
-├── outputs/train/      # training checkpoints & logs
-└── comp4901/           # datasets
+$SCRATCH/
+  vlash-forge.sif              ← Singularity image
+  vlash-forge/                 ← repo clone
+  .cache/huggingface/          ← base model weights (~10 GB, cached after first run)
+  .cache/lerobot/              ← dataset cache
+  outputs/pi05_cloud/          ← async+LoRA checkpoints
+  outputs/pi05_sync/           ← sync baseline checkpoints
+  outputs/scale_*/             ← scaling experiment checkpoints
+  logs/                        ← PBS job stdout/stderr
 ```
 
-Always write checkpoints and heavy artifacts to `/scratch/users/ntu/m230060/` — the home directory (`/home/users/ntu/m230060/`) has limited quota and should only contain source code.
+Home directory (`/home/users/ntu/<your-id>/`) has limited quota — keep only source code there.
