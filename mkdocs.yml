@@ -29,6 +29,7 @@ theme:
 
 nav:
   - Home: index.md
+  - Quickstart: quickstart.md
   - Getting Started:
     - First-time Setup: setup.md
     - Storage Setup: storage.md

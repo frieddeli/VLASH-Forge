@@ -1,0 +1,41 @@
+#!/bin/bash
+# PBS job script for VLASH training on NSCC ASPIRE 2A (PBSpro).
+#
+# Usage:
+#   export SCRATCH=/scratch/users/ntu/<your-id>
+#   export HF_TOKEN=hf_xxx
+#   export DATASET_REPO_ID=your-org/your-dataset
+#   qsub scripts/train_pbs.pbs
+#
+# Monitor: qstat -u $USER
+# Output:  logs/<job-id>.o (stdout + stderr combined via -j oe)
+
+#PBS -l select=1:ngpus=4:ncpus=16:mem=64gb
+#PBS -l walltime=24:00:00
+#PBS -j oe
+#PBS -o logs/
+#PBS -N vlash-forge
+
+set -e
+
+: ${SCRATCH:?"SCRATCH must be set before submitting"}
+: ${HF_TOKEN:?"HF_TOKEN must be set before submitting"}
+
+CONFIG=${1:-examples/train/pi05/cloud.yaml}
+
+mkdir -p logs
+
+echo "[pbs] Job ${PBS_JOBID} on $(hostname)"
+echo "[pbs] SCRATCH=${SCRATCH}, CONFIG=${CONFIG}"
+
+cd "${PBS_O_WORKDIR}"
+
+singularity run --nv \
+    -B "${SCRATCH}:/scratch" \
+    --env HF_TOKEN="${HF_TOKEN}" \
+    --env HF_HOME="/scratch/.cache/huggingface" \
+    --env DATASET_REPO_ID="${DATASET_REPO_ID:-}" \
+    --env NUM_GPUS="${NUM_GPUS:-4}" \
+    --env TRAIN_BACKEND="${TRAIN_BACKEND:-deepspeed}" \
+    --env WANDB_API_KEY="${WANDB_API_KEY:-}" \
+    vlash-forge.sif "${CONFIG}"
