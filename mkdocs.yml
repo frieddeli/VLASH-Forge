@@ -1,6 +1,6 @@
 site_name: VLASH Forge
 site_description: Portable VLA fine-tuning on cloud and HPC — one command to train anywhere
-site_url: https://frieddeli.github.io/vlash-forge
+site_url: https://frieddeli.github.io/VLASH-Forge
 
 theme:
   name: material

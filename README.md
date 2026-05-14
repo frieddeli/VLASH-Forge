@@ -12,7 +12,7 @@ Portable distributed VLA fine-tuning on cloud and HPC — one command to train a
 
 <p align="center">
     <a href="https://arxiv.org/abs/2512.01031"><b>Paper</b></a> |
-    <a href="https://frieddeli.github.io/vlash-forge"><b>Docs</b></a>
+    <a href="https://frieddeli.github.io/VLASH-Forge"><b>Docs</b></a>
 </p>
 
 <p align="center">
@@ -28,7 +28,7 @@ Portable distributed VLA fine-tuning on cloud and HPC — one command to train a
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/CUDA-12.6-76B900?logo=nvidia&logoColor=white" alt="CUDA 12.6">
   <img src="https://img.shields.io/badge/DeepSpeed-ZeRO--2-9B59B6" alt="DeepSpeed ZeRO-2">
-  <a href="https://frieddeli.github.io/vlash-forge">
+  <a href="https://frieddeli.github.io/VLASH-Forge">
     <img src="https://img.shields.io/badge/Docs-GitHub%20Pages-0A0A0A?logo=githubpages&logoColor=white" alt="Documentation">
   </a>
   <a href="https://youtu.be/s3FG4fmVIkw">
@@ -43,16 +43,16 @@ Portable distributed VLA fine-tuning on cloud and HPC — one command to train a
 
 ## Group Members
 
-| Name          | Student ID | Email                   | Contribution |
-| ------------- | ---------- | ----------------------- | ------------ |
+| Name          | Student ID | Email                   | Contribution                                                                                                                 |
+| ------------- | ---------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | Shao Yingzhan | 21335422   | yshao004@connect.ust.hk | Docker containerization, DeepSpeed ZeRO-2 distributed training, Singularity/HPC integration, SLURM scripts, cloud deployment |
-| Dana Yak      | 21335472   | dyak@connect.ust.hk     | Robot data collection, inference deployment on Jetson AGX Orin, evaluation & benchmarking, report writing, presentation |
+| Dana Yak      | 21335472   | dyak@connect.ust.hk     | Robot data collection, inference deployment on Jetson AGX Orin, evaluation & benchmarking, report writing, presentation      |
 
 ---
 
 ## About
 
-Fine-tuning a state-of-the-art robot policy like π₀.₅ on your own task requires
+Full Fine-tuning a state-of-the-art robot policy like π₀.₅ on your own task requires
 multi-GPU distributed training, a carefully managed Python environment, and
 infrastructure that has never been publicly released for the VLASH framework.
 **This repo removes those barriers.**
@@ -63,7 +63,7 @@ deployment framework built on [LeRobot](https://github.com/huggingface/lerobot)
 local workstation with one command. You bring your robot demonstrations; the
 pipeline handles the rest.
 
-**Full documentation:** [frieddeli.github.io/vlash-forge](https://frieddeli.github.io/vlash-forge)
+**Full documentation:** [frieddeli.github.io/VLASH-Forge](https://frieddeli.github.io/VLASH-Forge)
 
 **The intended workflow:**
 
