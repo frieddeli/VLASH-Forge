@@ -52,7 +52,7 @@ Portable distributed VLA fine-tuning on cloud and HPC — one command to train a
 
 ## About
 
-Full Fine-tuning a state-of-the-art robot policy like π₀.₅ on your own task requires
+Full Fine-tuning   state-of-the-art robot policy like π₀.₅ on your own task requires
 multi-GPU distributed training, a carefully managed Python environment, and
 infrastructure that has never been publicly released for the VLASH framework.
 **This repo removes those barriers.**
