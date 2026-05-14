@@ -204,7 +204,7 @@ TRAIN_BACKEND=fsdp ./scripts/train.sh examples/train/pi05/cloud_full.yaml
 Build the Docker image if you haven't already (no GPU needed for build):
 
 ```bash
-docker build -t vlash:latest .
+docker build -t vlash-forge:latest .
 ```
 
 Pull the Singularity image on HPC:

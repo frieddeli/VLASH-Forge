@@ -14,8 +14,8 @@ spec:
       hostIPC: true
       containers:
         - name: train
-          image: vlash:latest
-          imagePullPolicy: IfNotPresent
+          image: frieddeli/vlash-forge:latest
+          imagePullPolicy: Always
           args: ["examples/train/pi05/cloud.yaml"]
           env:
             - name: HF_TOKEN
@@ -24,9 +24,13 @@ spec:
                   name: hf-secret
                   key: token
             - name: HF_HOME
-              value: /hf_cache
+              value: /scratch/.cache/huggingface
+            - name: DATASET_REPO_ID
+              value: ""   # set via: kubectl create secret or patch the job
             - name: NUM_GPUS
               value: "4"
+            - name: TRAIN_BACKEND
+              value: "deepspeed"
             # Optional: uncomment to enable W&B experiment tracking
             # - name: WANDB_API_KEY
             #   valueFrom:
@@ -41,45 +45,39 @@ spec:
               memory: "64Gi"
               cpu: "8"
           volumeMounts:
-            - name: hf-cache
-              mountPath: /hf_cache
-            - name: outputs
-              mountPath: /workspace/outputs
+            - name: scratch
+              mountPath: /scratch
       volumes:
-        - name: hf-cache
+        - name: scratch
           persistentVolumeClaim:
-            claimName: hf-cache-pvc
-        - name: outputs
-          persistentVolumeClaim:
-            claimName: outputs-pvc
+            claimName: scratch-pvc
 
 # ── Prerequisites ─────────────────────────────────────────────────────────────
 # 1. Create HuggingFace token secret:
 #    kubectl create secret generic hf-secret --from-literal=token=<YOUR_HF_TOKEN>
 #
-# 2. Create PersistentVolumeClaims:
+# 2. Create a single PVC for /scratch (model cache + dataset + outputs):
 #    kubectl apply -f - <<'EOF'
 #    apiVersion: v1
 #    kind: PersistentVolumeClaim
 #    metadata:
-#      name: hf-cache-pvc
+#      name: scratch-pvc
 #    spec:
 #      accessModes: [ReadWriteOnce]
 #      resources:
 #        requests:
-#          storage: 50Gi
-#    ---
-#    apiVersion: v1
-#    kind: PersistentVolumeClaim
-#    metadata:
-#      name: outputs-pvc
-#    spec:
-#      accessModes: [ReadWriteOnce]
-#      resources:
-#        requests:
-#          storage: 100Gi
+#          storage: 200Gi   # ~10GB model + dataset + checkpoints
 #    EOF
 #
-# 3. Submit the job:
+# 3. Set your dataset repo ID (edit the DATASET_REPO_ID env var above, or patch):
+#    kubectl patch job vlash-train --type=json \
+#      -p='[{"op":"replace","path":"/spec/template/spec/containers/0/env/2/value","value":"your-org/your-dataset"}]'
+#
+# 4. Submit and monitor:
 #    kubectl apply -f k8s/training-job.yaml
 #    kubectl logs -f job/vlash-train
+#
+# Inside /scratch the layout is:
+#   /scratch/.cache/huggingface/  ← HF_HOME: base model weights (~10 GB)
+#   /scratch/.cache/lerobot/      ← dataset cache
+#   /scratch/outputs/             ← training checkpoints

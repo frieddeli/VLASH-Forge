@@ -41,7 +41,7 @@ huggingface-cli upload your-hf-username/your-dataset-name /path/to/dataset/ --re
 
 === "HPC (Singularity)"
     ```bash
-    singularity pull vlash-forge.sif docker://frieddeli/vlash-forge:latest
+    singularity pull vlash.sif docker://frieddeli/vlash-forge:latest
     ```
 
 === "Cloud / Local (Docker)"

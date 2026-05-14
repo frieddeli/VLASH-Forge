@@ -45,7 +45,7 @@ export HF_TOKEN=hf_xxx                    # HuggingFace token
 export DATASET_REPO_ID=your-org/your-dataset
 
 # 2. Pull the container
-singularity pull vlash-forge.sif docker://frieddeli/vlash-forge:latest
+singularity pull vlash.sif docker://frieddeli/vlash-forge:latest
 # or: docker pull frieddeli/vlash-forge:latest
 
 # 3. Train

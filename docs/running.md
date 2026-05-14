@@ -13,14 +13,14 @@ docker pull frieddeli/vlash-forge:latest
 docker build -t vlash-forge:latest .
 
 # Singularity (HPC)
-singularity pull vlash-forge.sif docker://frieddeli/vlash-forge:latest
+singularity pull vlash.sif docker://frieddeli/vlash-forge:latest
 ```
 
 ---
 
 ## Option A — Unified launcher (Docker or Singularity)
 
-`scripts/train.sh` detects whether `vlash-forge.sif` is present and launches via
+`scripts/train.sh` detects whether `vlash.sif` is present and launches via
 Singularity (HPC) or Docker (cloud/local) automatically.
 
 ```bash
