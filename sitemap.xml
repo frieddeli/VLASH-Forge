@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://frieddeli.github.io/vlash-forge/</loc>
+         <loc>https://frieddeli.github.io/VLASH-Forge/</loc>
          <lastmod>2026-05-14</lastmod>
     </url>
     <url>
-         <loc>https://frieddeli.github.io/vlash-forge/backends/</loc>
+         <loc>https://frieddeli.github.io/VLASH-Forge/backends/</loc>
          <lastmod>2026-05-14</lastmod>
     </url>
     <url>
-         <loc>https://frieddeli.github.io/vlash-forge/config/</loc>
+         <loc>https://frieddeli.github.io/VLASH-Forge/config/</loc>
          <lastmod>2026-05-14</lastmod>
     </url>
     <url>
-         <loc>https://frieddeli.github.io/vlash-forge/env-vars/</loc>
+         <loc>https://frieddeli.github.io/VLASH-Forge/env-vars/</loc>
          <lastmod>2026-05-14</lastmod>
     </url>
     <url>
-         <loc>https://frieddeli.github.io/vlash-forge/gpu/</loc>
+         <loc>https://frieddeli.github.io/VLASH-Forge/gpu/</loc>
          <lastmod>2026-05-14</lastmod>
     </url>
     <url>
-         <loc>https://frieddeli.github.io/vlash-forge/quickstart/</loc>
+         <loc>https://frieddeli.github.io/VLASH-Forge/quickstart/</loc>
          <lastmod>2026-05-14</lastmod>
     </url>
     <url>
-         <loc>https://frieddeli.github.io/vlash-forge/running/</loc>
+         <loc>https://frieddeli.github.io/VLASH-Forge/running/</loc>
          <lastmod>2026-05-14</lastmod>
     </url>
     <url>
-         <loc>https://frieddeli.github.io/vlash-forge/setup/</loc>
+         <loc>https://frieddeli.github.io/VLASH-Forge/setup/</loc>
          <lastmod>2026-05-14</lastmod>
     </url>
     <url>
-         <loc>https://frieddeli.github.io/vlash-forge/storage/</loc>
+         <loc>https://frieddeli.github.io/VLASH-Forge/storage/</loc>
          <lastmod>2026-05-14</lastmod>
     </url>
 </urlset>
