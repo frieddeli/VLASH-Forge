@@ -31,9 +31,7 @@ Portable distributed VLA fine-tuning on cloud and HPC — one command to train a
   <a href="https://frieddeli.github.io/VLASH-Forge">
     <img src="https://img.shields.io/badge/Docs-GitHub%20Pages-0A0A0A?logo=githubpages&logoColor=white" alt="Documentation">
   </a>
-  <a href="https://youtu.be/s3FG4fmVIkw">
-    <img src="https://img.shields.io/badge/Presentation-YouTube-FF0000?logo=youtube&logoColor=white" alt="Presentation video">
-  </a>
+
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License">
   </a>
@@ -41,18 +39,9 @@ Portable distributed VLA fine-tuning on cloud and HPC — one command to train a
 
 ---
 
-## Group Members
-
-| Name          | Student ID | Email                   | Contribution                                                                                                                 |
-| ------------- | ---------- | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Shao Yingzhan | 21335422   | yshao004@connect.ust.hk | Docker containerization, DeepSpeed ZeRO-2 distributed training, Singularity/HPC integration, SLURM scripts, cloud deployment |
-| Dana Yak      | 21335472   | dyak@connect.ust.hk     | Robot data collection, inference deployment on Jetson AGX Orin, evaluation & benchmarking, report writing, presentation      |
-
----
-
 ## About
 
-Full Fine-tuning   state-of-the-art robot policy like π₀.₅ on your own task requires
+Fine-tuning a state-of-the-art robot policy like π₀.₅ on your own task requires
 multi-GPU distributed training, a carefully managed Python environment, and
 infrastructure that has never been publicly released for the VLASH framework.
 **This repo removes those barriers.**
@@ -84,10 +73,6 @@ pipeline handles the rest.
 Validated end-to-end on a ball pick-and-place task: demonstrations collected on a
 Piper arm, fine-tuned on NSCC ASPIRE, deployed on a Jetson AGX Orin at 30 Hz —
 **65% task success rate** with async inference vs. 5% synchronous baseline.
-
-## Project Presentation
-
-[![Project Presentation](https://img.youtube.com/vi/s3FG4fmVIkw/maxresdefault.jpg)](https://youtu.be/s3FG4fmVIkw)
 
 ---
 
