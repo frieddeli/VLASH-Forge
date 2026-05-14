@@ -41,3 +41,15 @@ comp4901/test1/meta/
 !assets/piper_demo.mp4
 *.parquet
 
+
+# Presentation materials
+docs/slides_prompt.json
+docs/presentation_script.md
+
+# Internal/working files
+docs/image/
+.claude/
+docs/huggingface.txt
+docs/assignment.txt
+docs/ASP2A-AI-System_QuickStart-7-March-2024.pdf
+docs/IMPLEMENTATION_PLAN.md

@@ -10,7 +10,8 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
 </h3>
 
 <p align="center">
-    <a href="https://arxiv.org/abs/2512.01031"><b>Paper</b></a>
+    <a href="https://arxiv.org/abs/2512.01031"><b>Paper</b></a> |
+    <a href="https://frieddeli.github.io/vlash-forge"><b>Docs</b></a>
 </p>
 
 <p align="center">
@@ -26,6 +27,12 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
   <img src="https://img.shields.io/badge/CUDA-12.6-76B900?logo=nvidia&logoColor=white" alt="CUDA 12.6">
   <img src="https://img.shields.io/badge/DeepSpeed-ZeRO--2-9B59B6" alt="DeepSpeed ZeRO-2">
+  <a href="https://frieddeli.github.io/vlash-forge">
+    <img src="https://img.shields.io/badge/Docs-GitHub%20Pages-0A0A0A?logo=githubpages&logoColor=white" alt="Documentation">
+  </a>
+  <a href="https://youtu.be/s3FG4fmVIkw">
+    <img src="https://img.shields.io/badge/Presentation-YouTube-FF0000?logo=youtube&logoColor=white" alt="Presentation video">
+  </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License">
   </a>
@@ -35,9 +42,10 @@ Easy-to-use VLA deployment, fast to react, smooth in motion.
 
 ## Group Members
 
-| Name | Student ID | Email | Contribution |
-| ---- | ---------- | ----- | ------------ |
-| TBD  | TBD        | TBD   | TBD          |
+| Name          | Student ID | Email                   | Contribution |
+| ------------- | ---------- | ----------------------- | ------------ |
+| Shao Yingzhan | 21335422   | yshao004@connect.ust.hk | Docker containerization, DeepSpeed ZeRO-2 distributed training, Singularity/HPC integration, SLURM scripts, cloud deployment |
+| Dana Yak      | 21335472   | dyak@connect.ust.hk     | Robot data collection, inference deployment on Jetson AGX Orin, evaluation & benchmarking, report writing, presentation |
 
 ---
 
@@ -74,11 +82,9 @@ Validated end-to-end on a ball pick-and-place task: demonstrations collected on 
 Piper arm, fine-tuned on NSCC ASPIRE, deployed on a Jetson AGX Orin at 30 Hz —
 **65% task success rate** with async inference vs. 5% synchronous baseline.
 
-## Demo
+## Project Presentation
 
-π₀.₅ fine-tuned with VLASH performing ball pick-and-place on a Piper arm, running asynchronous inference on a Jetson AGX Orin at 30 Hz.
-
-[![Demo video](assets/demo-first-frame.png)](assets/piper_demo.mp4)
+[![Project Presentation](https://img.youtube.com/vi/s3FG4fmVIkw/maxresdefault.jpg)](https://youtu.be/s3FG4fmVIkw)
 
 ---
 
@@ -347,7 +353,7 @@ vlash run examples/inference/async.yaml --action_quant_ratio=2
 - [X] DeepSpeed ZeRO-2 distributed training
 - [X] Docker and Singularity containers for cloud/HPC deployment
 - [X] SLURM job script for HPC clusters
-- [ ] QLoRA fine-tuning for π₀.₅, π₀ under 8 GB GPU memory
+- [X] QLoRA fine-tuning for π₀.₅, π₀ under 8 GB GPU memory
 - [ ] Multi-node training support
 
 ---
