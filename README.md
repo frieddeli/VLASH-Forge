@@ -62,6 +62,8 @@ deployment framework built on [LeRobot](https://github.com/huggingface/lerobot)
 local workstation with one command. You bring your robot demonstrations; the
 pipeline handles the rest.
 
+**Full documentation:** [frieddeli.github.io/vlash-forge](https://frieddeli.github.io/vlash-forge)
+
 **The intended workflow:**
 
 ```
