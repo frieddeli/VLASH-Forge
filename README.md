@@ -1,12 +1,13 @@
 <!-- markdownlint-disable MD001 MD041 -->
 
+<h1 align="center">VLASH Forge</h1>
 <p align="center">
   <picture>
-    <img alt="VLASH" src="assets/logo.png" width=40%>
+    <img alt="VLASH Forge" src="assets/logo.png" width=40%>
   </picture>
 </p>
 <h3 align="center">
-Easy-to-use VLA deployment, fast to react, smooth in motion.
+Portable distributed VLA fine-tuning on cloud and HPC — one command to train anywhere.
 </h3>
 
 <p align="center">
