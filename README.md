@@ -55,6 +55,7 @@ pipeline handles the rest.
 **Full documentation:** [frieddeli.github.io/VLASH-Forge](https://frieddeli.github.io/VLASH-Forge)
 
 **Demo Video**
+
 https://github.com/user-attachments/assets/d64fb76d-c40a-4c2e-9726-adc54b53539a
 
 
